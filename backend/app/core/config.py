@@ -1,5 +1,5 @@
 """
-TerraShift Global Configuration & Fail-Fast Environment Validation.
+TerraShift+ Global Configuration & Fail-Fast Environment Validation.
 Strict Zero-Secrets enforcement: No hardcoded credentials or secret fallbacks.
 """
 from __future__ import annotations
@@ -11,7 +11,7 @@ from typing import List
 
 @dataclass(frozen=True)
 class Settings:
-    PROJECT_NAME: str = "TerraShift"
+    PROJECT_NAME: str = "TerraShift+"
     VERSION: str = "1.0.0"
     ENVIRONMENT: str = "development"
     LOG_LEVEL: str = "INFO"
@@ -43,7 +43,7 @@ def load_settings() -> Settings:
     ]
 
     return Settings(
-        PROJECT_NAME=os.getenv("PROJECT_NAME", "TerraShift"),
+        PROJECT_NAME=os.getenv("PROJECT_NAME", "TerraShift+"),
         ENVIRONMENT=os.getenv("ENVIRONMENT", "development"),
         LOG_LEVEL=os.getenv("LOG_LEVEL", "INFO"),
         HOST=os.getenv("HOST", "0.0.0.0"),

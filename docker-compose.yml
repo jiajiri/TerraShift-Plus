@@ -1,13 +1,13 @@
 services:
-  terrashift-api:
+  terrashift-plus-api:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: terrashift-backend
+    container_name: terrashift-plus-backend
     ports:
       - "8000:8000"
     environment:
-      - PROJECT_NAME=TerraShift
+      - PROJECT_NAME=TerraShift+
       - ENVIRONMENT=production
       - HOST=0.0.0.0
       - PORT=8000

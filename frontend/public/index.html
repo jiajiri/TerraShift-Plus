@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TerraShift — Closed-Loop NASA Earth Observation Decision Support & Conversational SI Cockpit</title>
+  <title>TerraShift+ — Closed-Loop NASA Earth Observation Decision Support & Conversational SI Cockpit</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%230b1120' stroke='%2338bdf8' stroke-width='6'/><path d='M30 65 Q50 30 70 65' stroke='%2310b981' stroke-width='6' fill='none'/><circle cx='50' cy='38' r='7' fill='%2338bdf8'/></svg>" />
   
   <!-- Fonts matching Resonant Planet & SpaceGenes+ -->
@@ -581,7 +581,7 @@
           <path d="M2 12h20"></path>
         </svg>
       </div>
-      <span class="brand-title font-heading">TerraShift</span>
+      <span class="brand-title font-heading">TerraShift+</span>
       <span class="badge-chip badge-nasa">NASA SPACE APPS 2026</span>
     </div>
 
@@ -780,13 +780,13 @@
           </div>
           <div style="font-size: 13px; line-height: 1.7; color: var(--text-muted);">
             <h3 style="color:#fff; margin-bottom: 6px;">1. Reference Evapotranspiration ($ET_0$) via FAO-56 Penman-Monteith</h3>
-            <p style="margin-bottom: 12px;">TerraShift computes daily thermodynamic atmospheric moisture demand using the standard Penman-Monteith formulation combining NASA POWER surface solar radiation ($R_n$), 2-meter air temperature ($T$), vapor pressure deficit derived from relative humidity ($e_s - e_a$), and aerodynamic wind resistance ($u_2$).</p>
+            <p style="margin-bottom: 12px;">TerraShift+ computes daily thermodynamic atmospheric moisture demand using the standard Penman-Monteith formulation combining NASA POWER surface solar radiation ($R_n$), 2-meter air temperature ($T$), vapor pressure deficit derived from relative humidity ($e_s - e_a$), and aerodynamic wind resistance ($u_2$).</p>
             
             <h3 style="color:#fff; margin-bottom: 6px;">2. Phenological Bio-Accumulation (GDD)</h3>
             <p style="margin-bottom: 12px;">Accumulated thermal units determine whether candidate crops can physiologically mature within observed frost-free windows. Crops failing heat accumulation thresholds are strictly pruned from rotation candidates.</p>
 
             <h3 style="color:#fff; margin-bottom: 6px;">3. CAP Theorem Guarantee (Consistency & Partition Tolerance)</h3>
-            <p>TerraShift operates under strict Consistency & Partition Tolerance rules: spatial queries enforce timestamped observational integrity with SHA-256 geohash local caching. Zero hallucinated weather data is ever generated.</p>
+            <p>TerraShift+ operates under strict Consistency & Partition Tolerance rules: spatial queries enforce timestamped observational integrity with SHA-256 geohash local caching. Zero hallucinated weather data is ever generated.</p>
           </div>
         </div>
       </div>
@@ -809,7 +809,7 @@
 
         <div class="chat-body" id="chatStream">
           <div class="chat-bubble bot">
-            <strong>Welcome to TerraCopilot.</strong> I am your scientifically grounded agronomic copilot. 
+            <strong>Welcome to TerraCopilot.</strong> I am your scientifically grounded agronomic copilot for TerraShift+. 
             All insights derive directly from your parcel's NASA Earth observations and deterministic FAO-56 thermodynamics. 
             Zero mathematical hallucinations. Ask me anything about your 5-year rotation.
           </div>

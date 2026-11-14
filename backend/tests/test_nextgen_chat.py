@@ -1,5 +1,5 @@
 """
-Test suite verifying Next-Gen conversational SI chatbot and scenario anomaly endpoints.
+Test suite verifying Next-Gen conversational SI chatbot and scenario anomaly endpoints for TerraShift+.
 """
 from __future__ import annotations
 import sys

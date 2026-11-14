@@ -1,8 +1,8 @@
 [tool.poetry]
-name = "terrashift"
+name = "terrashift-plus"
 version = "0.1.0"
 description = "Closed-Loop NASA Earth Observation Decision Support & Constrained Soil-Regenerative Optimization Engine"
-authors = ["TerraShift Core Team"]
+authors = ["TerraShift+ Core Team"]
 readme = "README.md"
 packages = [{include = "app", from = "backend"}]
 

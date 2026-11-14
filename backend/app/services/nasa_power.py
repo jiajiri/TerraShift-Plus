@@ -153,7 +153,7 @@ class NASAPowerClient:
             "NASA GMAO MERRA-2 Atmospheric Reanalysis"
         ]
         if is_cached:
-            sources.append("TerraShift Idempotent Spatial Cache (Verified Hash)")
+            sources.append("TerraShift+ Idempotent Spatial Cache (Verified Hash)")
 
         return ClimateMetrics(
             latitude=latitude,

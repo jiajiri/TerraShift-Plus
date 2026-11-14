@@ -145,7 +145,7 @@ class LLMOpsGuardrail:
             answer_text = (
                 f"Satellite observations (like NASA SMAP at 9 km and ECOSTRESS at 70 m) provide spatial coverage across entire agricultural regions, "
                 f"whereas in-situ ground probes measure localized moisture at discrete depths (e.g., 5 cm, 20 cm, 50 cm). "
-                f"TerraShift harmonizes both: satellite radiometry captures regional evaporative stress trends, while your local soil texture "
+                f"TerraShift+ harmonizes both: satellite radiometry captures regional evaporative stress trends, while your local soil texture "
                 f"({soil.texture.value}, {soil.water_holding_capacity_mm} mm capacity) calibrates the dynamic root-zone water budget."
             )
 

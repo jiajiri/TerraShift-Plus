@@ -1,8 +1,9 @@
-# TerraShift
+# TerraShift+
 ### Closed-Loop NASA Earth Observation Decision Support & Constrained Soil-Regenerative Optimization Engine
 
 NASA Space Apps Challenge 2026 Submission
 Challenge: Field Shift: Adapting Farms with NASA Data
+Team: TerraShift+ (Dar es Salaam Local Event)
 
 ---
 
@@ -10,7 +11,7 @@ Challenge: Field Shift: Adapting Farms with NASA Data
 
 Farmers worldwide face compounding pressures from shifting precipitation regimes, extreme degree-day heat spikes, and declining soil organic carbon (SOC). Traditional agricultural advisory tools either present static almanacs or rely on ungrounded language models that hallucinate crop recommendations and numerical yields without thermodynamic or biological grounding.
 
-TerraShift is a scientifically verified, production-grade agricultural decision support system (ADSS). It couples live NASA Earth Observations (NASA POWER agroclimatology, SMAP soil moisture, ECOSTRESS thermal anomalies, and GPM precipitation) with a deterministic bio-physical agronomic engine (FAO-56 Penman-Monteith and Growing Degree Day phenology) and a Pareto-optimal constrained rotation optimizer (Dynamic Programming with amortized O(1) state transitions).
+TerraShift+ is a scientifically verified, production-grade agricultural decision support system (ADSS). It couples live NASA Earth Observations (NASA POWER agroclimatology, SMAP soil moisture, ECOSTRESS thermal anomalies, and GPM precipitation) with a deterministic bio-physical agronomic engine (FAO-56 Penman-Monteith and Growing Degree Day phenology) and a Pareto-optimal constrained rotation optimizer (Dynamic Programming with amortized O(1) state transitions).
 
 An audited LLMOps Guardrail layer translates the Pareto-optimal mathematical frontier into actionable guidance for extension agents and farmers, strictly bounded by data contracts and deterministic citations to USDA, FAO, and NASA technical records.
 
@@ -122,7 +123,7 @@ CAP Classification: Consistency & Partition Tolerance (CP)
 git clone https://github.com/laphilemon/TerraShift.git
 cd TerraShift
 
-# Start the TerraShift Engine
+# Start the TerraShift+ Engine
 python3 -m backend.app.main
 ```
 Open http://localhost:8000 in your browser to access the cockpit.
@@ -158,7 +159,7 @@ docker compose up --build -d
 ## 7. Project Structure
 
 ```
-TerraShift/
+TerraShift+/
 ├── .env.example
 ├── .gitignore
 ├── Dockerfile

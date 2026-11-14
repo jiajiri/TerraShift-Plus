@@ -1,5 +1,5 @@
 """
-Automated Unit Test Suite for TerraShift Agronomy & Optimization Engine.
+Automated Unit Test Suite for TerraShift+ Agronomy & Optimization Engine.
 Uses Python standard library unittest for seamless zero-dependency CI/CD execution.
 Tests FAO-56 thermodynamics, GDD accumulation, O(1) state transitions, and edge cases.
 """

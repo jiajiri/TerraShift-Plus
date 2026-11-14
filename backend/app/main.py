@@ -1,5 +1,5 @@
 """
-Production HTTP Server for TerraShift Next-Gen.
+Production HTTP Server for TerraShift+.
 Provides high-performance REST endpoints for:
 - /api/v1/climate (NASA POWER Daily Agroclimatology)
 - /api/v1/optimize (Pareto Multi-Objective Solver with scenario sliders)
@@ -20,7 +20,7 @@ from .services.llmops_guardrail import LLMOpsGuardrail
 
 
 class TerraShiftAPIHandler(BaseHTTPRequestHandler):
-    """Clean HTTP request handler implementing the TerraShift REST API."""
+    """Clean HTTP request handler implementing the TerraShift+ REST API."""
 
     def _set_headers(self, status: int = 200, content_type: str = "application/json"):
         self.send_response(status)
@@ -272,7 +272,7 @@ def run_server(port: int = 8000, host: str = "0.0.0.0"):
     """Starts the HTTP server."""
     server_address = (host, port)
     httpd = HTTPServer(server_address, TerraShiftAPIHandler)
-    print(f"TerraShift Next-Gen Agro-Engine active at http://{host}:{port}")
+    print(f"TerraShift+ Next-Gen Agro-Engine active at http://{host}:{port}")
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
