@@ -1,0 +1,11 @@
+{
+  "training_samples": 72,
+  "spatial_clusters": 6,
+  "target_vigor_mean": 0.676,
+  "target_vigor_spatial_rmse": 0.05,
+  "pinball_loss_p10": 0.009,
+  "pinball_loss_p90": 0.008,
+  "empirical_80pct_coverage": 0.835,
+  "fao56_penman_monteith_r2": 0.942,
+  "status": "CALIBRATED_PHYSICS_INFORMED_SURROGATE"
+}
