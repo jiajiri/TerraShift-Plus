@@ -1,0 +1,102 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Surfaces - Warm Mineral Parchment */
+  --bg-canvas: #F6F5F0;
+  --bg-surface: #FFFFFF;
+  --bg-subtle: #EFEDE6;
+  --bg-hover: #E7E4DA;
+
+  /* Borders - Precision 1px Structural Rules */
+  --border-default: #DDD9CE;
+  --border-strong: #C2BDB0;
+
+  /* Typography Ink */
+  --ink-primary: #1C231F;
+  --ink-secondary: #4E5851;
+  --ink-muted: #767E78;
+
+  /* Brand Accents */
+  --accent-canopy: #234E36;
+  --accent-canopy-hover: #1A3B29;
+  --accent-hydro: #1F5673;
+
+  /* Print-grade Semantic Indicators */
+  --status-optimal-fg: #265D3D;
+  --status-optimal-bg: #EAF3ED;
+  --status-optimal-border: #B8D8C3;
+
+  --status-watch-fg: #8C5710;
+  --status-watch-bg: #FBF3E4;
+  --status-watch-border: #E5C99B;
+
+  --status-stress-fg: #9E3426;
+  --status-stress-bg: #FBECE9;
+  --status-stress-border: #E3B3AC;
+
+  --status-gap-fg: #4D555E;
+  --status-gap-bg: #EEF0F2;
+  --status-gap-border: #CFD4D9;
+}
+
+body {
+  margin: 0;
+  background-color: var(--bg-canvas);
+  color: var(--ink-primary);
+  font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Tabular Numerals & Monospaced Scientific Identifiers */
+.font-mono-tabular {
+  font-family: 'IBM Plex Mono', monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Custom 1px Hairline Container Utilities */
+.swiss-panel {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-default);
+}
+
+.swiss-inset {
+  background-color: var(--bg-subtle);
+  border: 1px solid var(--border-default);
+}
+
+/* Precision Range Inputs */
+input[type=range] {
+  accent-color: var(--accent-canopy);
+}
+
+/* Smooth Modern Scrollbars */
+html {
+  scroll-behavior: smooth;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #F6F5F0;
+}
+::-webkit-scrollbar-thumb {
+  background: #DDD9CE;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #A3A8A4;
+}
+
+/* Ensure Leaflet controls sit below fixed headers and modals */
+.leaflet-top,
+.leaflet-bottom {
+  z-index: 300 !important;
+}
+.leaflet-pane {
+  z-index: 200 !important;
+}
