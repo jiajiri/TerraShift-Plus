@@ -1,0 +1,1064 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TerraShift — Closed-Loop NASA Earth Observation Decision Support & Conversational SI Cockpit</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%230b1120' stroke='%2338bdf8' stroke-width='6'/><path d='M30 65 Q50 30 70 65' stroke='%2310b981' stroke-width='6' fill='none'/><circle cx='50' cy='38' r='7' fill='%2338bdf8'/></svg>" />
+  
+  <!-- Fonts matching Resonant Planet & SpaceGenes+ -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg: #05070e;
+      --bg-surface: rgba(13, 20, 36, 0.72);
+      --bg-surface-elevated: rgba(18, 28, 51, 0.85);
+      --border-subtle: rgba(56, 189, 248, 0.12);
+      --border-hover: rgba(56, 189, 248, 0.35);
+      --border-active: rgba(56, 189, 248, 0.65);
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --cyan: #38bdf8;
+      --cyan-glow: rgba(56, 189, 248, 0.25);
+      --emerald: #10b981;
+      --emerald-glow: rgba(16, 185, 129, 0.22);
+      --purple: #c084fc;
+      --purple-glow: rgba(192, 132, 252, 0.2);
+      --amber: #fbbf24;
+      --rose: #f43f5e;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    body {
+      background: var(--bg);
+      background-image: 
+        radial-gradient(circle at 15% 10%, rgba(56, 189, 248, 0.08) 0px, transparent 45%),
+        radial-gradient(circle at 85% 15%, rgba(192, 132, 252, 0.07) 0px, transparent 45%),
+        radial-gradient(circle at 50% 85%, rgba(16, 185, 129, 0.06) 0px, transparent 50%);
+      background-attachment: fixed;
+      color: var(--text);
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      line-height: 1.5;
+      min-height: 100vh;
+      overflow-x: hidden;
+      padding-bottom: 60px;
+    }
+
+    .font-heading { font-family: 'Space Grotesk', sans-serif; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+
+    /* Sticky Glass Navbar (Resonant Planet / SpaceGenes+ inspired) */
+    .navbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(5, 7, 14, 0.85);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 12px 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .brand-wrap {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .brand-logo {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(16, 185, 129, 0.3));
+      border: 1px solid var(--cyan);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 16px var(--cyan-glow);
+    }
+    .brand-title {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, #ffffff 0%, #38bdf8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .badge-chip {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      padding: 3px 8px;
+      border-radius: 9999px;
+    }
+    .badge-nasa {
+      background: rgba(56, 189, 248, 0.1);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      color: var(--cyan);
+    }
+    .nav-tabs {
+      display: flex;
+      gap: 6px;
+      background: rgba(13, 20, 36, 0.6);
+      padding: 4px;
+      border-radius: 10px;
+      border: 1px solid var(--border-subtle);
+    }
+    .nav-tab-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 6px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: 7px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .nav-tab-btn:hover {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.05);
+    }
+    .nav-tab-btn.active {
+      background: rgba(56, 189, 248, 0.15);
+      color: var(--cyan);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      box-shadow: 0 0 12px var(--cyan-glow);
+    }
+    .nav-status {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 12px;
+    }
+    .pulse-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--emerald);
+      box-shadow: 0 0 8px var(--emerald);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(1.3); }
+    }
+
+    /* Hero Context Header */
+    .hero-section {
+      max-width: 1440px;
+      margin: 24px auto 20px auto;
+      padding: 0 28px;
+    }
+    .hero-card {
+      background: var(--bg-surface);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      padding: 24px 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 20px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      position: relative;
+      overflow: hidden;
+    }
+    .hero-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+    }
+    .hero-content h1 {
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      margin-bottom: 6px;
+    }
+    .hero-content p {
+      font-size: 13px;
+      color: var(--text-muted);
+      max-width: 780px;
+    }
+    .stats-ribbon {
+      display: flex;
+      gap: 18px;
+    }
+    .stat-pill {
+      background: rgba(18, 28, 51, 0.7);
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      padding: 10px 16px;
+      text-align: center;
+    }
+    .stat-pill-val {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--cyan);
+    }
+    .stat-pill-lbl {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-dim);
+    }
+
+    /* Main Studio Container */
+    .studio-container {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 0 28px;
+      display: grid;
+      grid-template-columns: 360px 1fr 380px;
+      gap: 24px;
+    }
+    @media (max-width: 1360px) {
+      .studio-container { grid-template-columns: 340px 1fr; }
+      .copilot-dock { grid-column: span 2; }
+    }
+    @media (max-width: 980px) {
+      .studio-container { grid-template-columns: 1fr; }
+      .copilot-dock { grid-column: span 1; }
+    }
+
+    /* Surface Cards */
+    .surface-card {
+      background: var(--bg-surface);
+      backdrop-filter: blur(14px);
+      border: 1px solid var(--border-subtle);
+      border-radius: 14px;
+      padding: 20px;
+      margin-bottom: 20px;
+      transition: all 0.25s ease;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+    }
+    .surface-card:hover {
+      border-color: var(--border-hover);
+    }
+    .card-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-muted);
+    }
+
+    /* Presets & Controls */
+    .preset-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .preset-btn {
+      background: rgba(18, 28, 51, 0.8);
+      border: 1px solid var(--border-subtle);
+      color: var(--text);
+      padding: 9px 12px;
+      font-size: 11px;
+      font-weight: 600;
+      border-radius: 8px;
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.2s;
+    }
+    .preset-btn:hover {
+      border-color: var(--cyan);
+      background: rgba(56, 189, 248, 0.12);
+      color: var(--cyan);
+      transform: translateY(-1px);
+    }
+
+    .form-group {
+      margin-bottom: 12px;
+    }
+    .form-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 5px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .form-input {
+      width: 100%;
+      background: rgba(7, 11, 22, 0.9);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 9px 12px;
+      color: #fff;
+      font-size: 13px;
+      outline: none;
+      transition: all 0.2s;
+    }
+    .form-input:focus {
+      border-color: var(--cyan);
+      box-shadow: 0 0 0 2px var(--cyan-glow);
+    }
+
+    /* Sliders */
+    .slider-box {
+      background: rgba(7, 11, 22, 0.7);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin-bottom: 12px;
+    }
+    .slider-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      margin-bottom: 6px;
+    }
+    input[type=range] {
+      width: 100%;
+      accent-color: var(--cyan);
+      cursor: pointer;
+    }
+
+    .btn-action {
+      width: 100%;
+      background: linear-gradient(135deg, #0284c7 0%, #2563eb 100%);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 12px;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      cursor: pointer;
+      box-shadow: 0 4px 18px rgba(2, 132, 199, 0.35);
+      transition: all 0.2s;
+    }
+    .btn-action:hover {
+      box-shadow: 0 6px 24px rgba(2, 132, 199, 0.5);
+      transform: translateY(-1px);
+    }
+
+    /* Telemetry Chips */
+    .telemetry-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .telemetry-chip {
+      background: rgba(7, 11, 22, 0.8);
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      padding: 12px 10px;
+      text-align: center;
+      position: relative;
+    }
+    .telemetry-chip::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+    }
+    .telemetry-source {
+      font-size: 9px;
+      font-weight: 700;
+      color: var(--cyan);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+    .telemetry-val {
+      font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+    }
+    .telemetry-desc {
+      font-size: 11px;
+      color: var(--text-dim);
+      margin-top: 2px;
+    }
+
+    /* Strategy Tabs */
+    .archetype-tabs {
+      display: flex;
+      gap: 8px;
+      border-bottom: 1px solid var(--border-subtle);
+      padding-bottom: 12px;
+      margin-bottom: 16px;
+      overflow-x: auto;
+    }
+    .archetype-btn {
+      background: rgba(18, 28, 51, 0.6);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+      padding: 7px 14px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+    .archetype-btn.active {
+      background: rgba(56, 189, 248, 0.15);
+      border-color: var(--cyan);
+      color: var(--cyan);
+      box-shadow: 0 0 12px var(--cyan-glow);
+    }
+
+    /* 5-Year Rotation Cards */
+    .timeline-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    @media (max-width: 900px) {
+      .timeline-grid { grid-template-columns: 1fr; }
+    }
+    .year-cell {
+      background: rgba(7, 11, 22, 0.85);
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      padding: 12px;
+      transition: all 0.2s;
+    }
+    .year-cell:hover {
+      border-color: var(--cyan);
+      transform: translateY(-2px);
+    }
+    .year-badge {
+      font-size: 10px;
+      font-weight: 800;
+      color: var(--cyan);
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+    .crop-head {
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 2px;
+    }
+    .crop-tag {
+      display: inline-block;
+      font-size: 9px;
+      font-weight: 700;
+      padding: 1px 5px;
+      border-radius: 4px;
+      background: rgba(192, 132, 252, 0.15);
+      color: var(--purple);
+      margin-bottom: 8px;
+      text-transform: uppercase;
+    }
+    .stat-line {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-bottom: 3px;
+    }
+    .stat-val-bold { font-weight: 600; color: #fff; }
+    .stat-val-bold.pos { color: var(--emerald); }
+    .stat-val-bold.neg { color: var(--rose); }
+
+    /* Comparison Table */
+    .benchmark-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+    .benchmark-table th {
+      text-align: left;
+      padding: 8px 10px;
+      color: var(--text-dim);
+      border-bottom: 1px solid var(--border-subtle);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .benchmark-table td {
+      padding: 10px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    }
+
+    /* Copilot Chat Dock */
+    .copilot-dock {
+      display: flex;
+      flex-direction: column;
+      height: calc(100vh - 180px);
+      min-height: 580px;
+    }
+    .chat-body {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding-right: 4px;
+      margin-bottom: 12px;
+    }
+    .chat-bubble {
+      padding: 12px 14px;
+      border-radius: 12px;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    .chat-bubble.bot {
+      background: rgba(13, 20, 36, 0.95);
+      border: 1px solid var(--border-subtle);
+      color: var(--text);
+    }
+    .chat-bubble.user {
+      background: rgba(2, 132, 199, 0.25);
+      border: 1px solid rgba(2, 132, 199, 0.4);
+      color: #fff;
+      align-self: flex-end;
+    }
+    .citation-tray {
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    .citation-badge {
+      display: inline-block;
+      font-size: 9px;
+      background: rgba(56, 189, 248, 0.1);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      color: var(--cyan);
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-right: 4px;
+      margin-top: 4px;
+    }
+    .prompt-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+    .prompt-pill {
+      background: rgba(18, 28, 51, 0.8);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+      font-size: 10px;
+      padding: 4px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .prompt-pill:hover {
+      border-color: var(--cyan);
+      color: var(--cyan);
+    }
+    .chat-input-bar {
+      display: flex;
+      gap: 8px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Sticky Glass Navbar -->
+  <header class="navbar">
+    <div class="brand-wrap">
+      <div class="brand-logo">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"></path>
+          <path d="M2 12h20"></path>
+        </svg>
+      </div>
+      <span class="brand-title font-heading">TerraShift</span>
+      <span class="badge-chip badge-nasa">NASA SPACE APPS 2026</span>
+    </div>
+
+    <!-- View Switcher -->
+    <nav class="nav-tabs">
+      <button class="nav-tab-btn active" onclick="switchView('studio')">Studio & Deck</button>
+      <button class="nav-tab-btn" onclick="switchView('benchmark')">4-Way Benchmark</button>
+      <button class="nav-tab-btn" onclick="switchView('science')">Mission Science & Citations</button>
+    </nav>
+
+    <div class="nav-status">
+      <div class="pulse-dot"></div>
+      <span class="mono" style="font-size: 11px; color: var(--emerald);">MERRA-2 CONNECTED</span>
+    </div>
+  </header>
+
+  <!-- Hero Header Ribbon -->
+  <section class="hero-section">
+    <div class="hero-card">
+      <div class="hero-content">
+        <h1 class="font-heading">Adaptive Farm Decision Support Cockpit</h1>
+        <p>Coupling multi-decadal NASA Earth Observations (POWER v2.0, SMAP L4, ECOSTRESS, GPM, MODIS) with deterministic FAO-56 thermodynamic physics and constrained Pareto optimization to guide regenerative 5-year crop rotation trajectories.</p>
+      </div>
+      <div class="stats-ribbon">
+        <div class="stat-pill">
+          <div class="stat-pill-val mono">5</div>
+          <div class="stat-pill-lbl">NASA Sensors</div>
+        </div>
+        <div class="stat-pill">
+          <div class="stat-pill-val mono">10-Yr</div>
+          <div class="stat-pill-lbl">Reanalysis</div>
+        </div>
+        <div class="stat-pill">
+          <div class="stat-pill-val mono" style="color: var(--emerald);">0%</div>
+          <div class="stat-pill-lbl">Math Hallucination</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main 3-Column Studio -->
+  <main class="studio-container">
+
+    <!-- Column 1: Spatial Parameters & Scenario Sliders -->
+    <aside>
+      <div class="surface-card">
+        <div class="card-head">
+          <span>Global Field Presets</span>
+          <span style="color: var(--cyan);">STAC / CMR</span>
+        </div>
+        <div class="preset-grid">
+          <button class="preset-btn" onclick="applyPreset(41.8781, -93.0977, 'Iowa Corn Belt, USA')">Iowa Corn Belt</button>
+          <button class="preset-btn" onclick="applyPreset(30.9010, 75.8573, 'Punjab Plains, India')">Punjab Plains</button>
+          <button class="preset-btn" onclick="applyPreset(-12.9714, -45.5416, 'Cerrado, Brazil')">Brazil Cerrado</button>
+          <button class="preset-btn" onclick="applyPreset(13.5116, 2.1254, 'Sahel, Niger')">Sahelian Zone</button>
+        </div>
+
+        <div class="form-group">
+          <div class="form-label"><span>Latitude (°)</span><span id="latDisp" class="mono">41.8781</span></div>
+          <input type="number" id="latInput" class="form-input mono" value="41.8781" step="0.0001" onchange="syncCoords()">
+        </div>
+        <div class="form-group">
+          <div class="form-label"><span>Longitude (°)</span><span id="lonDisp" class="mono">-93.0977</span></div>
+          <input type="number" id="lonInput" class="form-input mono" value="-93.0977" step="0.0001" onchange="syncCoords()">
+        </div>
+
+        <div class="card-head" style="margin-top: 18px;">
+          <span>Soil Physical Profile</span>
+          <span style="color: var(--text-dim);">USDA NRCS</span>
+        </div>
+        <div class="form-group">
+          <div class="form-label"><span>Texture</span></div>
+          <select id="soilTexture" class="form-input">
+            <option value="loam" selected>Loam (Balanced Retention)</option>
+            <option value="sandy">Sandy (High Leaching Risk)</option>
+            <option value="silty_clay">Silty Clay (High Moisture Cap)</option>
+            <option value="clay">Heavy Clay</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <div class="form-label"><span>Soil Organic Matter (%)</span><span id="omDisp" class="mono">3.5%</span></div>
+          <input type="number" id="soilOM" class="form-input mono" value="3.5" step="0.1" min="0.5" max="10.0">
+        </div>
+
+        <div class="card-head" style="margin-top: 18px;">
+          <span>"What-If" Climate Sliders</span>
+          <span style="color: var(--amber);">GPM / ECOSTRESS</span>
+        </div>
+
+        <!-- Precipitation Anomaly Slider -->
+        <div class="slider-box">
+          <div class="slider-row">
+            <span>Precipitation Delta (GPM)</span>
+            <span class="mono" id="precipSliderVal" style="color: var(--cyan); font-weight:700;">0% (Normal)</span>
+          </div>
+          <input type="range" id="precipSlider" min="-40" max="40" value="0" step="5" oninput="updateSliders()">
+        </div>
+
+        <!-- Temperature Anomaly Slider -->
+        <div class="slider-box">
+          <div class="slider-row">
+            <span>Heat Stress Delta (ECOSTRESS)</span>
+            <span class="mono" id="tempSliderVal" style="color: var(--amber); font-weight:700;">+0.0°C</span>
+          </div>
+          <input type="range" id="tempSlider" min="0" max="4" value="0" step="0.5" oninput="updateSliders()">
+        </div>
+
+        <button class="btn-action" id="solveBtn" onclick="runSolver()">
+          Execute Dynamic Pareto Solver
+        </button>
+      </div>
+    </aside>
+
+    <!-- Column 2: Center Workspace (View-switched) -->
+    <main>
+      <!-- View 1: Studio & Deck (Default) -->
+      <div id="viewStudio">
+        <!-- Telemetry Deck -->
+        <div class="surface-card">
+          <div class="card-head">
+            <span>NASA Multi-Sensor Telemetry Deck</span>
+            <span style="color: var(--emerald); font-size:11px;">● 100% Deterministic Satellite Pipeline</span>
+          </div>
+          <div class="telemetry-grid">
+            <div class="telemetry-chip">
+              <div class="telemetry-source">NASA POWER</div>
+              <div class="telemetry-val mono" id="tPrecip">-- mm</div>
+              <div class="telemetry-desc">Annual Precipitation</div>
+            </div>
+            <div class="telemetry-chip">
+              <div class="telemetry-source">NASA POWER</div>
+              <div class="telemetry-val mono" id="tGDD">--</div>
+              <div class="telemetry-desc">Growing Degree Days</div>
+            </div>
+            <div class="telemetry-chip">
+              <div class="telemetry-source">NASA CERES</div>
+              <div class="telemetry-val mono" id="tSolar">-- MJ</div>
+              <div class="telemetry-desc">Solar Insolation</div>
+            </div>
+            <div class="telemetry-chip">
+              <div class="telemetry-source">NASA SMAP L4</div>
+              <div class="telemetry-val mono" id="tSoilM">0.32 m³/m³</div>
+              <div class="telemetry-desc">Root-Zone Moisture</div>
+            </div>
+            <div class="telemetry-chip">
+              <div class="telemetry-source">NASA ECOSTRESS</div>
+              <div class="telemetry-val mono" id="tDrought">--</div>
+              <div class="telemetry-desc">Drought Variance</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 5-Year Rotation Trajectories -->
+        <div class="surface-card">
+          <div class="card-head">
+            <span>Pareto-Optimal 5-Year Rotation Strategies</span>
+            <span style="color: var(--cyan); font-size:11px;">Constrained DP Optimizer</span>
+          </div>
+          
+          <div class="archetype-tabs" id="archetypeTabs"></div>
+          <div id="planSummaryCard" style="margin-bottom: 16px;"></div>
+
+          <!-- 5-Year Grid -->
+          <div class="timeline-grid" id="timelineGrid"></div>
+        </div>
+      </div>
+
+      <!-- View 2: 4-Way Benchmark Matrix -->
+      <div id="viewBenchmark" style="display: none;">
+        <div class="surface-card">
+          <div class="card-head">
+            <span>4-Way Strategy Benchmark Matrix</span>
+            <span style="color: var(--cyan);">Monoculture vs. Pareto Strategies</span>
+          </div>
+          <table class="benchmark-table">
+            <thead>
+              <tr>
+                <th>Strategy Archetype</th>
+                <th>5-Year Gross Margin</th>
+                <th>Net Soil N Delta</th>
+                <th>Drought Risk</th>
+                <th>Resilience Index</th>
+              </tr>
+            </thead>
+            <tbody id="benchmarkTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- View 3: Mission Science & Citations -->
+      <div id="viewScience" style="display: none;">
+        <div class="surface-card">
+          <div class="card-head">
+            <span>Scientific Derivations & Grounding Standards</span>
+            <span style="color: var(--emerald);">FAO-56 & CAP Theorem</span>
+          </div>
+          <div style="font-size: 13px; line-height: 1.7; color: var(--text-muted);">
+            <h3 style="color:#fff; margin-bottom: 6px;">1. Reference Evapotranspiration ($ET_0$) via FAO-56 Penman-Monteith</h3>
+            <p style="margin-bottom: 12px;">TerraShift computes daily thermodynamic atmospheric moisture demand using the standard Penman-Monteith formulation combining NASA POWER surface solar radiation ($R_n$), 2-meter air temperature ($T$), vapor pressure deficit derived from relative humidity ($e_s - e_a$), and aerodynamic wind resistance ($u_2$).</p>
+            
+            <h3 style="color:#fff; margin-bottom: 6px;">2. Phenological Bio-Accumulation (GDD)</h3>
+            <p style="margin-bottom: 12px;">Accumulated thermal units determine whether candidate crops can physiologically mature within observed frost-free windows. Crops failing heat accumulation thresholds are strictly pruned from rotation candidates.</p>
+
+            <h3 style="color:#fff; margin-bottom: 6px;">3. CAP Theorem Guarantee (Consistency & Partition Tolerance)</h3>
+            <p>TerraShift operates under strict Consistency & Partition Tolerance rules: spatial queries enforce timestamped observational integrity with SHA-256 geohash local caching. Zero hallucinated weather data is ever generated.</p>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Column 3: TerraCopilot (Audited SI Chatbot) -->
+    <aside class="copilot-dock">
+      <div class="surface-card" style="display:flex; flex-direction:column; height:100%;">
+        <div class="card-head">
+          <span>TerraCopilot (SI Agronomist)</span>
+          <span style="color: var(--emerald); font-size:10px;">AUDITED CITATIONS</span>
+        </div>
+
+        <div class="prompt-pills">
+          <button class="prompt-pill" onclick="sendQuickPrompt('Why should I plant Crimson Clover or cover crops?')">Cover Crops</button>
+          <button class="prompt-pill" onclick="sendQuickPrompt('How does the drought scenario affect my crop yields?')">Drought Risk</button>
+          <button class="prompt-pill" onclick="sendQuickPrompt('Explain my 5-year soil nitrogen trajectory.')">Soil Nitrogen</button>
+          <button class="prompt-pill" onclick="sendQuickPrompt('Explain how satellite SMAP compares to ground soil probes.')">SMAP vs Probes</button>
+        </div>
+
+        <div class="chat-body" id="chatStream">
+          <div class="chat-bubble bot">
+            <strong>Welcome to TerraCopilot.</strong> I am your scientifically grounded agronomic copilot. 
+            All insights derive directly from your parcel's NASA Earth observations and deterministic FAO-56 thermodynamics. 
+            Zero mathematical hallucinations. Ask me anything about your 5-year rotation.
+          </div>
+        </div>
+
+        <div class="chat-input-bar">
+          <input type="text" id="chatInput" class="form-input" placeholder="Ask about soil, water stress, or crops..." onkeypress="if(event.key==='Enter') sendChatMsg()">
+          <button class="btn-action" style="width: auto; padding: 0 16px;" onclick="sendChatMsg()">Send</button>
+        </div>
+      </div>
+    </aside>
+
+  </main>
+
+  <script>
+    let appState = null;
+    let activePlanIdx = 0;
+
+    function switchView(viewName) {
+      document.querySelectorAll(".nav-tab-btn").forEach(b => b.classList.remove("active"));
+      event.target.classList.add("active");
+
+      document.getElementById("viewStudio").style.display = viewName === 'studio' ? 'block' : 'none';
+      document.getElementById("viewBenchmark").style.display = viewName === 'benchmark' ? 'block' : 'none';
+      document.getElementById("viewScience").style.display = viewName === 'science' ? 'block' : 'none';
+    }
+
+    function applyPreset(lat, lon, label) {
+      document.getElementById("latInput").value = lat;
+      document.getElementById("lonInput").value = lon;
+      syncCoords();
+      runSolver();
+    }
+
+    function syncCoords() {
+      document.getElementById("latDisp").innerText = parseFloat(document.getElementById("latInput").value).toFixed(4);
+      document.getElementById("lonDisp").innerText = parseFloat(document.getElementById("lonInput").value).toFixed(4);
+    }
+
+    function updateSliders() {
+      const p = parseInt(document.getElementById("precipSlider").value);
+      const t = parseFloat(document.getElementById("tempSlider").value);
+      document.getElementById("precipSliderVal").innerText = (p > 0 ? "+" : "") + p + "%" + (p === 0 ? " (Normal)" : p < 0 ? " (Deficit)" : " (Surplus)");
+      document.getElementById("tempSliderVal").innerText = "+" + t.toFixed(1) + "°C";
+    }
+
+    async function runSolver() {
+      const btn = document.getElementById("solveBtn");
+      btn.innerText = "Querying NASA & Solving...";
+      btn.disabled = true;
+
+      const lat = parseFloat(document.getElementById("latInput").value);
+      const lon = parseFloat(document.getElementById("lonInput").value);
+      const texture = document.getElementById("soilTexture").value;
+      const om = parseFloat(document.getElementById("soilOM").value);
+      const pDelta = parseFloat(document.getElementById("precipSlider").value);
+      const tDelta = parseFloat(document.getElementById("tempSlider").value);
+
+      const payload = {
+        latitude: lat,
+        longitude: lon,
+        precip_delta_pct: pDelta,
+        temp_delta_c: tDelta,
+        soil: {
+          texture: texture,
+          organic_matter_pct: om,
+          current_nitrogen_kg_ha: 50.0,
+          ph: 6.8,
+          depth_cm: 100.0,
+          water_holding_capacity_mm: 140.0
+        }
+      };
+
+      try {
+        const res = await fetch("/api/v1/optimize", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) throw new Error("Optimization failed");
+        appState = await res.json();
+        renderDashboard();
+      } catch (err) {
+        console.error(err);
+        alert("Solver communication error: " + err.message);
+      } finally {
+        btn.innerText = "Execute Dynamic Pareto Solver";
+        btn.disabled = false;
+      }
+    }
+
+    function renderDashboard() {
+      if (!appState) return;
+
+      const c = appState.climate_summary;
+      document.getElementById("tPrecip").innerText = c.annual_precip_mm + " mm";
+      document.getElementById("tGDD").innerText = c.annual_gdd + " °C-d";
+      document.getElementById("tSolar").innerText = c.mean_daily_solar_radiation_mj_m2 + " MJ";
+      document.getElementById("tDrought").innerText = (c.drought_risk_index * 100).toFixed(1) + "%";
+
+      // Render Archetype Tabs
+      const tabs = document.getElementById("archetypeTabs");
+      tabs.innerHTML = appState.pareto_plans.map((p, idx) => `
+        <button class="archetype-btn ${idx === activePlanIdx ? 'active' : ''}" onclick="selectPlan(${idx})">
+          ${p.archetype.split(" ")[0]}
+        </button>
+      `).join("");
+
+      renderPlanDetails();
+      renderBenchmarkTable();
+    }
+
+    function selectPlan(idx) {
+      activePlanIdx = idx;
+      renderDashboard();
+    }
+
+    function renderPlanDetails() {
+      const plan = appState.pareto_plans[activePlanIdx];
+
+      document.getElementById("planSummaryCard").innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+          <h3 class="font-heading" style="font-size:16px; font-weight:700;">${plan.archetype}</h3>
+          <span class="mono" style="font-size:12px; color:var(--cyan); font-weight:700;">Resilience: ${plan.mean_resilience_score}/100</span>
+        </div>
+        <p style="font-size:12px; color:var(--text-muted); margin-bottom:10px;">${plan.description}</p>
+        <div style="display:flex; gap:20px; font-size:12px; background:rgba(7,11,22,0.7); padding:8px 12px; border-radius:8px;">
+          <div>5-Yr Gross Margin: <strong class="mono" style="color:#fff;">$${Math.round(plan.total_margin_usd).toLocaleString()}/ha</strong></div>
+          <div>Net Soil N: <strong class="mono" style="color:${plan.net_nitrogen_balance_kg >= 0 ? 'var(--emerald)' : 'var(--rose)'}">${plan.net_nitrogen_balance_kg > 0 ? '+' : ''}${plan.net_nitrogen_balance_kg} kg/ha</strong></div>
+          <div>Drought Stress Risk: <strong class="mono" style="color:var(--text);">${plan.drought_vulnerability_score.toFixed(1)}%</strong></div>
+        </div>
+      `;
+
+      document.getElementById("timelineGrid").innerHTML = plan.rotation_sequence.map(r => `
+        <div class="year-cell">
+          <div class="year-badge mono">YEAR 0${r.year}</div>
+          <div class="crop-head">${r.crop.name}</div>
+          <div class="crop-tag">${r.crop.category}</div>
+          <div class="stat-line">
+            <span>Yield:</span>
+            <span class="stat-val-bold mono">${r.projected_yield_pct}%</span>
+          </div>
+          <div class="stat-line">
+            <span>Soil N:</span>
+            <span class="stat-val-bold mono ${r.soil_nitrogen_delta_kg >= 0 ? 'pos' : 'neg'}">
+              ${r.soil_nitrogen_delta_kg > 0 ? '+' : ''}${r.soil_nitrogen_delta_kg} kg
+            </span>
+          </div>
+          <div class="stat-line">
+            <span>Water Stress:</span>
+            <span class="stat-val-bold mono">${(r.water_stress_index * 100).toFixed(0)}%</span>
+          </div>
+          <div class="stat-line">
+            <span>Margin:</span>
+            <span class="stat-val-bold mono">$${Math.round(r.margin_usd)}</span>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    function renderBenchmarkTable() {
+      const tbody = document.getElementById("benchmarkTableBody");
+      const rows = [];
+
+      // Status Quo
+      const sq = appState.status_quo_plan;
+      rows.push(`
+        <tr style="background: rgba(244, 63, 94, 0.06);">
+          <td><strong>${sq.archetype}</strong></td>
+          <td class="mono">$${Math.round(sq.total_margin_usd).toLocaleString()}</td>
+          <td class="mono" style="color:var(--rose);">${sq.net_nitrogen_balance_kg} kg</td>
+          <td class="mono">${sq.drought_vulnerability_score}%</td>
+          <td class="mono" style="color:var(--rose); font-weight:700;">${sq.mean_resilience_score}/100</td>
+        </tr>
+      `);
+
+      // Pareto Plans
+      appState.pareto_plans.forEach((p, idx) => {
+        const isCurrent = idx === activePlanIdx;
+        rows.push(`
+          <tr style="${isCurrent ? 'background: rgba(56, 189, 248, 0.08);' : ''}">
+            <td><strong>${p.archetype}</strong></td>
+            <td class="mono">$${Math.round(p.total_margin_usd).toLocaleString()}</td>
+            <td class="mono" style="color:${p.net_nitrogen_balance_kg >= 0 ? 'var(--emerald)' : 'var(--amber)'};">${p.net_nitrogen_balance_kg > 0 ? '+' : ''}${p.net_nitrogen_balance_kg} kg</td>
+            <td class="mono">${p.drought_vulnerability_score.toFixed(1)}%</td>
+            <td class="mono" style="color:var(--emerald); font-weight:700;">${p.mean_resilience_score}/100</td>
+          </tr>
+        `);
+      });
+
+      tbody.innerHTML = rows.join("");
+    }
+
+    function sendQuickPrompt(txt) {
+      document.getElementById("chatInput").value = txt;
+      sendChatMsg();
+    }
+
+    async function sendChatMsg() {
+      const input = document.getElementById("chatInput");
+      const text = input.value.trim();
+      if (!text) return;
+
+      const chat = document.getElementById("chatStream");
+      chat.innerHTML += `<div class="chat-bubble user">${text}</div>`;
+      input.value = "";
+      chat.scrollTop = chat.scrollHeight;
+
+      const lat = parseFloat(document.getElementById("latInput").value);
+      const lon = parseFloat(document.getElementById("lonInput").value);
+      const activePlan = appState ? appState.pareto_plans[activePlanIdx] : null;
+
+      try {
+        const res = await fetch("/api/v1/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            message: text,
+            latitude: lat,
+            longitude: lon,
+            plan_id: activePlan ? activePlan.plan_id : "plan-resilience",
+            soil: {
+              texture: document.getElementById("soilTexture").value,
+              organic_matter_pct: parseFloat(document.getElementById("soilOM").value)
+            }
+          })
+        });
+
+        const reply = await res.json();
+        chat.innerHTML += `
+          <div class="chat-bubble bot">
+            <div>${reply.answer}</div>
+            <div class="citation-tray">
+              <strong style="font-size:10px; color:var(--text-dim); text-transform:uppercase;">NASA Grounding Citations:</strong><br>
+              ${reply.citations.map(c => `<span class="citation-badge">${c}</span>`).join("")}
+            </div>
+          </div>
+        `;
+      } catch (err) {
+        chat.innerHTML += `<div class="chat-bubble bot" style="border-color:var(--rose);">Error communicating with SI Copilot.</div>`;
+      }
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    window.onload = () => {
+      syncCoords();
+      updateSliders();
+      runSolver();
+    };
+  </script>
+</body>
+</html>

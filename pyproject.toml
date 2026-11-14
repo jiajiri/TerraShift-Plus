@@ -1,0 +1,25 @@
+[tool.poetry]
+name = "terrashift"
+version = "0.1.0"
+description = "Closed-Loop NASA Earth Observation Decision Support & Constrained Soil-Regenerative Optimization Engine"
+authors = ["TerraShift Core Team"]
+readme = "README.md"
+packages = [{include = "app", from = "backend"}]
+
+[tool.poetry.dependencies]
+python = ">=3.11"
+pydantic = ">=2.9.0"
+pydantic-settings = ">=2.4.0"
+fastapi = ">=0.115.0"
+uvicorn = {extras = ["standard"], version = ">=0.30.0"}
+httpx = ">=0.27.0"
+numpy = ">=1.26.0"
+python-dotenv = ">=1.0.1"
+
+[tool.poetry.group.dev.dependencies]
+pytest = ">=8.3.0"
+pytest-asyncio = ">=0.24.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

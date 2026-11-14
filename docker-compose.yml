@@ -1,0 +1,16 @@
+services:
+  terrashift-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: terrashift-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - PROJECT_NAME=TerraShift
+      - ENVIRONMENT=production
+      - HOST=0.0.0.0
+      - PORT=8000
+    volumes:
+      - ./backend/data_cache:/app/backend/data_cache
+    restart: unless-stopped
