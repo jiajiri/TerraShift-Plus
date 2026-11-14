@@ -80,6 +80,25 @@ class TestTerraShiftAgronomyEngine(unittest.TestCase):
         for p in plans:
             self.assertEqual(len(p.rotation_sequence), 5)
             self.assertGreater(p.total_margin_usd, 0)
+            # Verify that each plan has distinct crops (no single-crop loops)
+            unique_crop_ids = set(r.crop.id for r in p.rotation_sequence)
+            self.assertGreaterEqual(len(unique_crop_ids), 3, "Plans must exhibit multi-crop biological diversity")
+
+    def test_rusle_erosion_calculation(self):
+        """
+        Validates RUSLE erosion physics: higher slope and poor canopy must yield higher hazard score.
+        """
+        climate = NASAPowerClient._generate_deterministic_fallback_profile(41.8781, -93.0977, "Test")
+        soil_flat = SoilProfile(texture=SoilTexture.LOAM, ph=6.8, organic_matter_pct=3.5, depth_cm=100.0, current_nitrogen_kg_ha=50.0, water_holding_capacity_mm=150.0, slope_pct=1.0)
+        soil_steep = SoilProfile(texture=SoilTexture.LOAM, ph=6.8, organic_matter_pct=3.5, depth_cm=100.0, current_nitrogen_kg_ha=50.0, water_holding_capacity_mm=150.0, slope_pct=12.0)
+
+        clover = next(c for c in RotationOptimizer.DEFAULT_CATALOG if c.id == "clover_cover")
+        corn = next(c for c in RotationOptimizer.DEFAULT_CATALOG if c.id == "corn")
+
+        flat_loss = AgronomyEngine.calculate_rusle_erosion_risk(clover, soil_flat, climate)
+        steep_loss = AgronomyEngine.calculate_rusle_erosion_risk(corn, soil_steep, climate)
+
+        self.assertGreater(steep_loss, flat_loss, "Steep corn slope must suffer higher erosion than flat clover")
 
 
 if __name__ == "__main__":
