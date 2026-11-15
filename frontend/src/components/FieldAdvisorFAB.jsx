@@ -1,6 +1,6 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { MessageSquare, X, Send, ExternalLink, Map, Layers, Droplets, ShieldAlert, BarChart2, Activity } from 'lucide-react';
+import { MessageSquare, X, Send, ExternalLink, Map, Layers, Droplets, ShieldAlert, BarChart2, Activity, Mic, Square, Volume2, VolumeX, HelpCircle } from 'lucide-react';
 import { streamGroundedChat } from '../api';
 import { useI18n } from '../i18n/I18nContext';
 import MiniSatelliteView from './MiniSatelliteView';
@@ -108,8 +108,172 @@ export default function FieldAdvisorFAB({
   ]);
   const [inputValue, setInputValue] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
+  const [forceShowPrompts, setForceShowPrompts] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingStatus, setRecordingStatus] = useState('');
+  const [speakingIndex, setSpeakingIndex] = useState(null);
   const messagesEndRef = useRef(null);
   const abortRef = useRef(null);
+  const recognitionRef = useRef(null);
+  const audioPlayerRef = useRef(null);
+
+  // Stop any active audio and speech synthesis
+  const stopAudio = useCallback(() => {
+    if (audioPlayerRef.current) {
+      audioPlayerRef.current.pause();
+      audioPlayerRef.current = null;
+    }
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+    setSpeakingIndex(null);
+  }, []);
+
+  // Stop voice recording
+  const stopRecording = useCallback(() => {
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch (e) {}
+      recognitionRef.current = null;
+    }
+    setIsRecording(false);
+    setRecordingStatus('');
+  }, []);
+
+  // Voice Input (Speech-to-Text) using Web Speech API with Swahili & English synchronization
+  const handleToggleMic = () => {
+    if (isRecording) {
+      stopRecording();
+      return;
+    }
+
+    stopAudio();
+
+    if (typeof window === 'undefined') return;
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      alert(lang === 'sw' ? 'Kivinjari hiki hakitumii utambuzi wa sauti moja kwa moja. Tafadhali tumia Chrome au Edge.' : 'Speech recognition is not supported in this browser. Please use Chrome or Edge.');
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = true;
+      recognition.lang = lang === 'sw' ? 'sw-TZ' : 'en-US';
+
+      recognitionRef.current = recognition;
+      setIsRecording(true);
+      setRecordingStatus(lang === 'sw' ? 'Inasikiliza Kiswahili...' : 'Listening in English...');
+
+      recognition.onresult = (event) => {
+        let finalTranscript = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) {
+            finalTranscript += event.results[i][0].transcript;
+          }
+        }
+        if (finalTranscript) {
+          setInputValue((prev) => (prev ? `${prev} ${finalTranscript.trim()}` : finalTranscript.trim()));
+          stopRecording();
+        }
+      };
+
+      recognition.onerror = (event) => {
+        console.warn('[FieldAdvisor Mic] Error:', event.error);
+        stopRecording();
+      };
+
+      recognition.onend = () => {
+        stopRecording();
+      };
+
+      recognition.start();
+    } catch (err) {
+      console.warn('[FieldAdvisor Mic] Initialization error:', err);
+      stopRecording();
+    }
+  };
+
+  // Voice Output (Text-to-Speech) via /api/v1/voice/tts with browser speechSynthesis fallback
+  const handleToggleSpeak = async (idx, messageText) => {
+    if (speakingIndex === idx) {
+      stopAudio();
+      return;
+    }
+
+    stopAudio();
+    setSpeakingIndex(idx);
+
+    const speechLang = lang === 'sw' ? 'sw' : 'en';
+
+    try {
+      const res = await fetch('/api/v1/voice/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: messageText, lang: speechLang }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.audio_base64 && !data.fallback) {
+          const audio = new Audio(`data:${data.mime_type || 'audio/wav'};base64,${data.audio_base64}`);
+          audioPlayerRef.current = audio;
+          audio.onended = () => setSpeakingIndex(null);
+          audio.onerror = () => {
+            fallbackBrowserSpeech(messageText, speechLang);
+          };
+          audio.play();
+          return;
+        }
+      }
+    } catch (err) {
+      console.warn('[FieldAdvisor TTS] Edge TTS failed, invoking browser synthesis:', err);
+    }
+
+    fallbackBrowserSpeech(messageText, speechLang);
+  };
+
+  const fallbackBrowserSpeech = (textToSpeak, speechLang) => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+      setSpeakingIndex(null);
+      return;
+    }
+
+    window.speechSynthesis.cancel();
+    const cleanText = (textToSpeak || '')
+      .replace(/https?:\/\/[^\s)]+/g, '')
+      .replace(/[#*`_~]/g, '')
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+      .slice(0, 1000);
+
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+    utterance.lang = speechLang === 'sw' ? 'sw-TZ' : 'en-US';
+    utterance.rate = 1.0;
+
+    const voices = window.speechSynthesis.getVoices();
+    const targetVoice = voices.find((v) =>
+      speechLang === 'sw' ? (v.lang.startsWith('sw') || v.name.toLowerCase().includes('swahili')) : v.lang.startsWith('en')
+    );
+    if (targetVoice) {
+      utterance.voice = targetVoice;
+    }
+
+    utterance.onend = () => setSpeakingIndex(null);
+    utterance.onerror = () => setSpeakingIndex(null);
+
+    window.speechSynthesis.speak(utterance);
+  };
+
+  // Cleanup on unmount, close, location change, or language change
+  useEffect(() => {
+    return () => {
+      stopAudio();
+      stopRecording();
+    };
+  }, [stopAudio, stopRecording, lang, coords?.lat, coords?.lon, isOpen]);
 
   // If language changes and only initial greeting exists, update the greeting
   useEffect(() => {
@@ -464,31 +628,39 @@ export default function FieldAdvisorFAB({
 
     if (visualType === 'erosion_rusle_grid') {
       const data = visualData || {};
-      const cells = data.cells || [];
-      const peakCell = data.peak_cell || 'R1C1';
       const maxSlope = data.max_slope != null ? data.max_slope : (terrain?.slope_pct ?? 3.2);
-      const strats = data.strategies || [
-        { name: 'Status Quo Maize', soil_loss_t_ha: 14.8 },
-        { name: 'Resilience First', soil_loss_t_ha: 4.6 },
-        { name: 'Balanced Stewardship', soil_loss_t_ha: 5.8 },
-        { name: 'Market Yield Max', soil_loss_t_ha: 8.2 }
-      ];
+
+      // Dynamically bind strategies and values to real active optimization strategies
+      const optStrats = optimization?.strategies || [];
+      const defaultNamesEn = ['Status Quo Maize', 'Resilience First', 'Balanced Stewardship', 'Market Yield Max'];
+      const defaultNamesSw = ['Mahindi ya Kawaida', 'Ustahimilivu wa Ukame', 'Uwiano wa Udongo', 'Mavuno ya Juu'];
+      const fallbackLosses = [14.8, 4.6, 5.8, 8.2];
+
+      const strats = [0, 1, 2, 3].map((idx) => {
+        const optS = optStrats[idx];
+        const rawLoss = optS?.mean_rusle_t_ha != null ? Number(optS.mean_rusle_t_ha) : fallbackLosses[idx];
+        const roundedLoss = Math.round(rawLoss * 10) / 10;
+        const name = lang === 'sw'
+          ? (optS?.name_sw || defaultNamesSw[idx])
+          : (optS?.name || defaultNamesEn[idx]);
+        return { name, soil_loss_t_ha: roundedLoss };
+      });
 
       return (
         <div className="my-2.5 p-2.5 bg-white border border-[#DDD9CE] rounded-sm text-[10px] font-mono shadow-xs">
           <div className="flex items-center justify-between text-[#767E78] mb-1.5 font-sans font-semibold">
             <span className="flex items-center gap-1 text-[#1C231F]">
-              <ShieldAlert size={12} className="text-[#9E3426]" /> Topographic Slope & RUSLE Soil Loss
+              <ShieldAlert size={12} className="text-[#9E3426]" /> {t('advisor.rusle_title') || (lang === 'sw' ? 'Mwinamo na Mmomonyoko wa Udongo (RUSLE)' : 'Topographic Slope & RUSLE Soil Loss')}
             </span>
             <span className="text-[9px] px-1 py-0.2 bg-[#FBECE9] text-[#9E3426] border border-[#E3B3AC] rounded-xs font-mono font-semibold">
-              Peak Slope: {maxSlope}%
+              {t('advisor.peak_slope') || 'Peak Slope'}: {maxSlope}%
             </span>
           </div>
 
           {/* 4-Strategy RUSLE Soil Loss Comparison Bars */}
           <div className="space-y-1.5 py-1">
             {strats.map((s, idx) => {
-              const loss = s.soil_loss_t_ha || 5.0;
+              const loss = s.soil_loss_t_ha;
               const barW = Math.min(100, Math.round((loss / 16.0) * 100));
               const isHigh = loss > 10.0;
               return (
@@ -497,7 +669,7 @@ export default function FieldAdvisorFAB({
                     <span className={isHigh ? 'text-[#9E3426] font-semibold' : 'text-[#1C231F]'}>
                       {s.name}
                     </span>
-                    <span className="font-semibold text-[#1C231F]">{loss} t/ha/yr</span>
+                    <span className="font-semibold text-[#1C231F]">{loss} {lang === 'sw' ? 't/ha/mwaka' : 't/ha/yr'}</span>
                   </div>
                   <div className="w-full bg-[#EFEDE6] h-2 rounded-xs overflow-hidden">
                     <div
@@ -511,7 +683,7 @@ export default function FieldAdvisorFAB({
           </div>
 
           <div className="mt-2 pt-1 flex justify-between items-center text-[9px] text-[#767E78] border-t border-[#EFEDE6]">
-            <span>RUSLE Tolerable Loss (T-value): 8.0 t/ha/yr</span>
+            <span>{t('advisor.tolerable_loss') || (lang === 'sw' ? 'Kiwango Salama cha RUSLE (T-value): tani 8.0/ha/mwaka' : 'RUSLE Tolerable Loss (T-value): 8.0 t/ha/yr')}</span>
             <button
               onClick={() => {
                 if (onSetMapGrid) onSetMapGrid('erosion_risk');
@@ -841,27 +1013,55 @@ export default function FieldAdvisorFAB({
                     </div>
                   )}
 
-                  {/* Interactive Map & Heatmap Action Chips */}
+                  {/* Interactive Map & Heatmap Action Chips + Read Aloud (TTS) Button */}
                   {m.role === 'assistant' && (
-                    <div className="mt-2 pt-2 border-t border-[#EFEDE6] flex flex-wrap gap-1.5">
-                      <button
-                        onClick={() => handleActionClick('water_stress')}
-                        className="px-2 py-1 bg-[#F6F5F0] hover:bg-[#EFEDE6] border border-[#DDD9CE] text-[10px] font-mono text-[#234E36] rounded-xs flex items-center gap-1 transition-colors cursor-pointer"
-                      >
-                        <Map size={10} /> {t('advisor.btn_water_stress')}
-                      </button>
-                      <button
-                        onClick={() => handleActionClick('erosion_risk')}
-                        className="px-2 py-1 bg-[#F6F5F0] hover:bg-[#EFEDE6] border border-[#DDD9CE] text-[10px] font-mono text-[#9E3426] rounded-xs flex items-center gap-1 transition-colors cursor-pointer"
-                      >
-                        <ShieldAlert size={10} /> {t('advisor.btn_erosion_risk')}
-                      </button>
-                      <button
-                        onClick={() => handleActionClick('soilMoisture')}
-                        className="px-2 py-1 bg-[#F6F5F0] hover:bg-[#EFEDE6] border border-[#DDD9CE] text-[10px] font-mono text-[#2563EB] rounded-xs flex items-center gap-1 transition-colors cursor-pointer"
-                      >
-                        <Layers size={10} /> {t('advisor.btn_soil_moisture')}
-                      </button>
+                    <div className="mt-2 pt-2 border-t border-[#EFEDE6] flex flex-wrap items-center justify-between gap-1.5">
+                      <div className="flex flex-wrap gap-1.5">
+                        <button
+                          onClick={() => handleActionClick('water_stress')}
+                          className="px-2 py-1 bg-[#F6F5F0] hover:bg-[#EFEDE6] border border-[#DDD9CE] text-[10px] font-mono text-[#234E36] rounded-xs flex items-center gap-1 transition-colors cursor-pointer"
+                        >
+                          <Map size={10} /> {t('advisor.btn_water_stress')}
+                        </button>
+                        <button
+                          onClick={() => handleActionClick('erosion_risk')}
+                          className="px-2 py-1 bg-[#F6F5F0] hover:bg-[#EFEDE6] border border-[#DDD9CE] text-[10px] font-mono text-[#9E3426] rounded-xs flex items-center gap-1 transition-colors cursor-pointer"
+                        >
+                          <ShieldAlert size={10} /> {t('advisor.btn_erosion_risk')}
+                        </button>
+                        <button
+                          onClick={() => handleActionClick('soilMoisture')}
+                          className="px-2 py-1 bg-[#F6F5F0] hover:bg-[#EFEDE6] border border-[#DDD9CE] text-[10px] font-mono text-[#2563EB] rounded-xs flex items-center gap-1 transition-colors cursor-pointer"
+                        >
+                          <Layers size={10} /> {t('advisor.btn_soil_moisture')}
+                        </button>
+                      </div>
+
+                      {/* Read Aloud (Speak) Button */}
+                      {m.text && !isStreaming && (
+                        <button
+                          type="button"
+                          onClick={() => handleToggleSpeak(idx, m.text)}
+                          className={`px-2 py-1 text-[10px] font-mono rounded-xs border transition-colors flex items-center gap-1 cursor-pointer ${
+                            speakingIndex === idx
+                              ? 'bg-[#E3B3AC] text-[#9E3426] border-[#9E3426] font-semibold'
+                              : 'bg-[#F6F5F0] text-[#234E36] border-[#DDD9CE] hover:bg-[#EFEDE6]'
+                          }`}
+                          title={speakingIndex === idx ? (t('advisor.stop_listening') || 'Stop') : (t('advisor.listen') || 'Listen')}
+                        >
+                          {speakingIndex === idx ? (
+                            <>
+                              <VolumeX size={11} className="animate-pulse" />
+                              <span>{t('advisor.stop_listening') || 'Stop'}</span>
+                            </>
+                          ) : (
+                            <>
+                              <Volume2 size={11} />
+                              <span>{t('advisor.listen') || 'Listen'}</span>
+                            </>
+                          )}
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
@@ -872,24 +1072,56 @@ export default function FieldAdvisorFAB({
 
           {/* Starter Prompts & Input (flex-shrink-0) */}
           <div className="flex-shrink-0">
-            {/* 1-Click Starter Prompts */}
-            <div className="px-3 py-2 bg-white/70 border-t border-[#DDD9CE]">
-              <div className="text-[10px] font-mono text-[#767E78] uppercase mb-1 font-semibold">
-                {t('advisor.header_title')}:
+            {/* Live Voice Recording Status Banner */}
+            {isRecording && (
+              <div className="px-3 py-1.5 bg-[#EAF3ED] border-t border-[#B8D8C3] flex items-center justify-between text-xs font-mono text-[#234E36]">
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#9E3426] animate-ping" />
+                  <span>{recordingStatus || t('advisor.listening_in')}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={stopRecording}
+                  className="px-2 py-0.5 bg-[#FBECE9] text-[#9E3426] border border-[#E3B3AC] rounded-xs text-[10px] font-semibold hover:bg-[#F6D8D2] flex items-center gap-1 cursor-pointer"
+                >
+                  <Square size={10} />
+                  <span>{t('advisor.stop_listening') || 'Stop'}</span>
+                </button>
               </div>
-              <div className="flex flex-wrap gap-1">
-                {starterPrompts.map((prompt, i) => (
-                  <button
-                    key={i}
-                    disabled={isStreaming}
-                    onClick={() => handleSend(prompt)}
-                    className="text-[10px] font-mono px-2 py-1 bg-white border border-[#DDD9CE] text-[#1C231F] hover:bg-[#E7E4DA] hover:border-[#234E36] rounded-xs transition-colors disabled:opacity-50 text-left cursor-pointer min-h-[32px] sm:min-h-0 flex items-center"
-                  >
-                    {prompt}
-                  </button>
-                ))}
+            )}
+
+            {/* 1-Click Starter Prompts - Shown ONLY when userMessagesCount === 0 and input is empty, or toggled via ? button */}
+            {((messages.filter((m) => m.role === 'user').length === 0 && inputValue.trim().length === 0) || forceShowPrompts) && (
+              <div className="px-3 py-2 bg-white/80 border-t border-[#DDD9CE] transition-all">
+                <div className="flex items-center justify-between text-[10px] font-mono text-[#767E78] uppercase mb-1 font-semibold">
+                  <span>{t('advisor.header_title')}:</span>
+                  {forceShowPrompts && (
+                    <button
+                      type="button"
+                      onClick={() => setForceShowPrompts(false)}
+                      className="text-[9px] hover:text-[#1C231F] flex items-center gap-0.5 cursor-pointer"
+                    >
+                      <X size={10} />
+                    </button>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  {starterPrompts.map((prompt, i) => (
+                    <button
+                      key={i}
+                      disabled={isStreaming}
+                      onClick={() => {
+                        setForceShowPrompts(false);
+                        handleSend(prompt);
+                      }}
+                      className="text-[10px] font-mono px-2 py-1 bg-white border border-[#DDD9CE] text-[#1C231F] hover:bg-[#E7E4DA] hover:border-[#234E36] rounded-xs transition-colors disabled:opacity-50 text-left cursor-pointer min-h-[32px] sm:min-h-0 flex items-center"
+                    >
+                      {prompt}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Input Footer */}
             <div className="p-2.5 bg-white border-t border-[#DDD9CE]">
@@ -900,18 +1132,53 @@ export default function FieldAdvisorFAB({
                 }}
                 className="flex items-center gap-1.5"
               >
+                {/* Starter Prompts Toggle Button (?) */}
+                <button
+                  type="button"
+                  onClick={() => setForceShowPrompts((prev) => !prev)}
+                  className={`w-9 h-9 border rounded-xs flex items-center justify-center transition-colors cursor-pointer flex-shrink-0 ${
+                    forceShowPrompts
+                      ? 'bg-[#234E36] text-white border-[#234E36]'
+                      : 'bg-[#EFEDE6] hover:bg-[#DDD9CE] text-[#4E5851] border-[#DDD9CE]'
+                  }`}
+                  title={t('advisor.toggle_prompts') || 'Starter Questions (?)'}
+                  aria-label={t('advisor.toggle_prompts') || 'Starter Questions'}
+                >
+                  <HelpCircle size={15} />
+                </button>
+
                 <input
                   type="text"
                   value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
+                  onChange={(e) => {
+                    setInputValue(e.target.value);
+                    if (forceShowPrompts) setForceShowPrompts(false);
+                  }}
                   placeholder={t('advisor.input_placeholder')}
                   disabled={isStreaming}
                   className="flex-1 h-9 px-2.5 bg-[#EFEDE6] border border-[#DDD9CE] text-xs font-mono text-[#1C231F] focus:outline-none focus:border-[#234E36] rounded-xs placeholder-[#767E78]"
                 />
+
+                {/* Voice Input Microphone Button (40x40px bordered) */}
+                <button
+                  type="button"
+                  onClick={handleToggleMic}
+                  className={`w-9 h-9 border rounded-xs flex items-center justify-center transition-colors cursor-pointer flex-shrink-0 ${
+                    isRecording
+                      ? 'bg-[#FBECE9] text-[#9E3426] border-[#9E3426] animate-pulse'
+                      : 'bg-[#EFEDE6] hover:bg-[#DDD9CE] text-[#234E36] border-[#DDD9CE]'
+                  }`}
+                  title={isRecording ? (t('advisor.stop_listening') || 'Stop Recording') : (t('advisor.mic_title') || 'Voice Input (Speak)')}
+                  aria-label={t('advisor.mic_title') || 'Voice Input'}
+                >
+                  {isRecording ? <Square size={14} /> : <Mic size={15} />}
+                </button>
+
+                {/* Send Button */}
                 <button
                   type="submit"
                   disabled={isStreaming || !inputValue.trim()}
-                  className="h-9 px-3.5 bg-[#234E36] hover:bg-[#1A3B29] text-white text-xs font-mono font-medium rounded-xs flex items-center gap-1 transition-colors disabled:opacity-50 min-h-[44px] sm:min-h-0 cursor-pointer"
+                  className="h-9 px-3.5 bg-[#234E36] hover:bg-[#1A3B29] text-white text-xs font-mono font-medium rounded-xs flex items-center gap-1 transition-colors disabled:opacity-50 min-h-[44px] sm:min-h-0 cursor-pointer flex-shrink-0"
                 >
                   <Send size={12} />
                   <span>{isStreaming ? t('common.loading') : (t('advisor.btn_ask') || 'ASK')}</span>

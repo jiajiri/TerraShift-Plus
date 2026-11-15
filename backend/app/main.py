@@ -492,6 +492,96 @@ class TerraShiftAPIHandler(BaseHTTPRequestHandler):
             self._handle_chat_stream(req_data)
             return
 
+        if path == "/api/v1/voice/tts":
+            text = (req_data.get("text") or "").strip()
+            lang = req_data.get("lang", "en")
+            api_key = settings.GEMINI_API_KEY
+            if not text:
+                self._set_headers(400)
+                self.wfile.write(json.dumps({"error": "Missing text parameter"}).encode("utf-8"))
+                return
+            if not api_key:
+                self._set_headers(200)
+                self.wfile.write(json.dumps({"fallback": True, "reason": "no_api_key"}).encode("utf-8"))
+                return
+            try:
+                system_prompt = (
+                    "Soma maneno haya kwa sauti ya Kiswahili fasaha cha Tanzania, kwa sauti ya utulivu na kueleweka."
+                    if lang == "sw"
+                    else "Read these sentences aloud in natural, clear, professional English."
+                )
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key={api_key}"
+                payload = {
+                    "contents": [{"parts": [{"text": f"{system_prompt}\n\n{text[:1500]}"}]}],
+                    "generationConfig": {
+                        "responseModalities": ["AUDIO"],
+                        "speechConfig": {
+                            "voiceConfig": {
+                                "prebuiltVoiceConfig": {
+                                    "voiceName": "Puck" if lang == "sw" else "Aoede"
+                                }
+                            }
+                        }
+                    }
+                }
+                req = urllib.request.Request(
+                    url,
+                    data=json.dumps(payload).encode("utf-8"),
+                    headers={"Content-Type": "application/json"}
+                )
+                with urllib.request.urlopen(req, timeout=10.0) as resp:
+                    if resp.status == 200:
+                        data = json.loads(resp.read().decode("utf-8"))
+                        parts = data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
+                        audio_part = next((p for p in parts if p.get("inlineData", {}).get("mimeType", "").startswith("audio/")), None)
+                        if audio_part:
+                            self._set_headers(200)
+                            self.wfile.write(json.dumps({
+                                "audio_base64": audio_part["inlineData"]["data"],
+                                "mime_type": audio_part["inlineData"].get("mimeType", "audio/wav"),
+                                "fallback": False
+                            }).encode("utf-8"))
+                            return
+            except Exception as e:
+                pass
+            self._set_headers(200)
+            self.wfile.write(json.dumps({"fallback": True}).encode("utf-8"))
+            return
+
+        if path == "/api/v1/voice/transcribe":
+            audio_b64 = req_data.get("audio_base64", "")
+            mime = req_data.get("mime_type", "audio/webm")
+            lang_hint = req_data.get("lang", "auto")
+            api_key = settings.GEMINI_API_KEY
+            if not audio_b64 or not api_key:
+                self._set_headers(400 if not audio_b64 else 503)
+                self.wfile.write(json.dumps({"error": "Missing audio or API key"}).encode("utf-8"))
+                return
+            try:
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
+                payload = {
+                    "contents": [{
+                        "parts": [
+                            {"text": "Transcribe this speech accurately into plain text. Return only the spoken words."},
+                            {"inlineData": {"mimeType": mime, "data": audio_b64}}
+                        ]
+                    }],
+                    "generationConfig": {"temperature": 0.1, "maxOutputTokens": 256}
+                }
+                req = urllib.request.Request(url, data=json.dumps(payload).encode("utf-8"), headers={"Content-Type": "application/json"})
+                with urllib.request.urlopen(req, timeout=12.0) as resp:
+                    if resp.status == 200:
+                        data = json.loads(resp.read().decode("utf-8"))
+                        transcript = data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "").strip()
+                        self._set_headers(200)
+                        self.wfile.write(json.dumps({"transcript": transcript, "success": True}).encode("utf-8"))
+                        return
+            except Exception as e:
+                pass
+            self._set_headers(500)
+            self.wfile.write(json.dumps({"error": "Transcription failed"}).encode("utf-8"))
+            return
+
         if path == "/api/v1/agent/chat":
             from .services.terrashift_agent import run_terrashift_agent
             user_q = req_data.get("query", "")

@@ -199,7 +199,15 @@
     "view_on_map": "View on Full Map →",
     "verify_live": "Verify Data Sources Live:",
     "tool_executing": "Executing MCP Tool:",
-    "btn_ask": "ASK"
+    "btn_ask": "ASK",
+    "listen": "Listen",
+    "stop_listening": "Stop",
+    "mic_title": "Voice Input (Speak)",
+    "listening_in": "Listening in English...",
+    "toggle_prompts": "Starter Questions",
+    "rusle_title": "Topographic Slope & RUSLE Soil Loss",
+    "peak_slope": "Peak Slope",
+    "tolerable_loss": "RUSLE Tolerable Loss (T-value): 8.0 t/ha/yr"
   },
   "faq": {
     "title": "Scientific Methodology & Agronomic FAQ (Field Parameterized)",

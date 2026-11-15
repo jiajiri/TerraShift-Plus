@@ -200,7 +200,15 @@
     "view_on_map": "Tazama kwenye Ramani Kamili →",
     "verify_live": "Thibitisha Vyanzo vya Data Papo Hapo:",
     "tool_executing": "Chombo cha MCP Kinafanya Kazi:",
-    "btn_ask": "ULIZA"
+    "btn_ask": "ULIZA",
+    "listen": "Sikiliza",
+    "stop_listening": "Simamisha",
+    "mic_title": "Kuingiza Sauti (Ongea)",
+    "listening_in": "Inasikiliza Kiswahili...",
+    "toggle_prompts": "Maswali ya Kuanzia",
+    "rusle_title": "Mwinamo na Mmomonyoko wa Udongo (RUSLE)",
+    "peak_slope": "Mwinamo wa Juu",
+    "tolerable_loss": "Kiwango Salama cha RUSLE (T-value): tani 8.0/ha/mwaka"
   },
   "faq": {
     "title": "Mbinu za Kisayansi & Maswali Yanayoulizwa Mara kwa Mara (FAQ ya Shambani)",
