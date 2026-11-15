@@ -5,7 +5,28 @@
 **Track:** Climate-Smart Agriculture, Space Telemetry & Generative AI Systems  
 **Organization:** [Jiajiri](https://github.com/jiajiri)  
 **Repository:** [https://github.com/jiajiri/TerraShift](https://github.com/jiajiri/TerraShift)  
+**Team Profile:** [NASA Space Apps Team Page](https://www.spaceappschallenge.org/2026/find-a-team/terrashift5/)  
 **Team:** Lazaro A. Philemon (Tanzania), Jackson Haruni (Tanzania), Arnold Philemon (Kenya)
+
+---
+
+## Live Application & Submission Deliverables
+
+| Deliverable | Live Link | Description |
+| :--- | :--- | :--- |
+| **NASA Team Page** | [terrashift5](https://www.spaceappschallenge.org/2026/find-a-team/terrashift5/) | Official NASA Space Apps Challenge project page and team details |
+| **Live Workstation** | [terrashift-plus.pages.dev](https://terrashift-plus.pages.dev/) | Production edge web app (NASA GIBS, POWER, SMAP L4, bilingual EN/SW) |
+| **Research Paper** | [research-paper.pdf](https://terrashift-plus.pages.dev/research-paper.pdf) | 10-page formal technical paper in IEEE format |
+| **Slide Presentation** | [TerraShift-Demo-7Slides.pdf](https://terrashift-plus.pages.dev/TerraShift-Demo-7Slides.pdf) | 7-slide NASA Space Apps Challenge pitch deck |
+| **Interactive API Docs**| [docs.html](https://terrashift-plus.pages.dev/docs.html) | OpenAPI 3.1 Swagger UI with live voice & telemetry endpoints |
+| **Voice Audio Sample** | [test_morogoro_audio.wav](https://terrashift-plus.pages.dev/test_morogoro_audio.wav) | 24kHz RIFF WAVE synthesized Tanzanian Swahili audio |
+
+### Scan to Open Live on Mobile
+<p align="left">
+  <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=https%3A//terrashift-plus.pages.dev/&margin=2" alt="Scan to Launch TerraShift+ Live" width="180" height="180" />
+  <br />
+  <sub>Scan with smartphone camera to launch live on mobile</sub>
+</p>
 
 ---
 
