@@ -64,7 +64,7 @@ function checkSecurityGuardrail(query) {
 
 // Words that must NEVER be geocoded as geographic locations
 const FORBIDDEN_GEO_WORDS = new Set([
-  'why', 'how', 'what', 'when', 'where', 'which', 'who', 'whose', 'whom',
+  'why', 'how', 'what', 'hat', 'when', 'where', 'which', 'who', 'whose', 'whom',
   'is', 'are', 'was', 'were', 'my', 'your', 'our', 'the', 'a', 'an', 'this', 'that',
   'soil', 'exposed', 'bare', 'cover', 'crop', 'crops', 'rotation', 'rotations',
   'maize', 'pigeonpea', 'cowpea', 'sorghum', 'sunflower', 'legume', 'legumes',
@@ -80,11 +80,46 @@ const FORBIDDEN_GEO_WORDS = new Set([
   'mzunguko', 'faida', 'hasara', 'afisa', 'ugani', 'hapa'
 ]);
 
+// Map common colloquial place mentions or typos
+const KNOWN_PLACE_ALIASES = {
+  'german': 'Germany',
+  'deutschland': 'Germany',
+  'holland': 'Netherlands',
+  'uk': 'United Kingdom',
+  'usa': 'United States',
+  'america': 'United States',
+};
+
+async function queryOpenMeteo(place) {
+  if (!place || place.length < 3) return null;
+  const alias = KNOWN_PLACE_ALIASES[place.toLowerCase()];
+  const searchTerm = alias || place;
+
+  try {
+    const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(searchTerm)}&count=1&language=en&format=json`, {
+      headers: { 'User-Agent': 'TerraShift/2.0' }
+    });
+    if (geoRes.ok) {
+      const geoData = await geoRes.json();
+      const top = geoData.results?.[0];
+      if (top && top.latitude && top.longitude) {
+        return {
+          location_name: top.country ? `${top.name}, ${top.country}` : top.name,
+          latitude: Number(top.latitude),
+          longitude: Number(top.longitude),
+        };
+      }
+    }
+  } catch (err) {
+    console.warn('[TerraShift+ Dynamic Geocoding] Fetch error for', searchTerm, err);
+  }
+  return null;
+}
+
 /**
  * Checks if the user is asking an explicit foreign/external location query.
- * For all normal farm questions ("Why is my soil exposed?", "Show erosion & slope risk",
- * "Which rotation saves the most water?", "How does Maize compare?"), returns false so the
- * user's active field coordinates are strictly preserved.
+ * Handles common typos ("form" instead of "from", "hat" instead of "what")
+ * and extracts multi-word place candidates cleanly.
  */
 async function detectExplicitForeignPlace(question) {
   const qLower = (question || '').toLowerCase();
@@ -117,10 +152,10 @@ async function detectExplicitForeignPlace(question) {
     return null;
   }
 
-  // Check for explicit foreign place intent:
-  // e.g. "i need data from german", "climate in nairobi", "rainfall in California", "data za morogoro"
-  const explicitPrepositionMatch = qLower.match(/\b(?:data\s+(?:from|for|in|of|za|kwa)|climate\s+(?:in|of|for)|weather\s+(?:in|of|for)|hali\s+ya\s+hewa\s+(?:ya|kwa|katika)|mvua\s+za|kutoka)\s+([a-zA-Z\s]{3,30})/i);
-  
+  // Regex handles explicit place inquiries, accommodating typos ("form", "frm", "hat"):
+  // e.g. "hat is data form morogoro tanzania", "i need data from german", "data za morogoro", "weather in dodoma"
+  const explicitPrepositionMatch = qLower.match(/\b(?:data\s+(?:from|form|frm|for|in|of|za|kwa|ya)|weather\s+(?:in|of|for)|climate\s+(?:in|of|for)|hali\s+ya\s+hewa\s+(?:ya|kwa|katika)|mvua\s+za|kutoka|kuhusu|about)\s+([a-zA-Z\s]{3,35})/i);
+
   let candidatePlace = null;
   if (explicitPrepositionMatch) {
     candidatePlace = explicitPrepositionMatch[1].trim();
@@ -136,30 +171,26 @@ async function detectExplicitForeignPlace(question) {
     return null;
   }
 
-  // Filter out forbidden words from candidate place
+  // Filter out forbidden tokens from candidate place
   const tokens = candidatePlace.split(/\s+/).filter(w => !FORBIDDEN_GEO_WORDS.has(w) && w.length >= 3);
   if (tokens.length === 0) {
     return null;
   }
 
+  // 1. Try full search string (e.g., "morogoro tanzania")
   const queryPlace = tokens.join(' ');
-  try {
-    const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(queryPlace)}&count=1&language=en&format=json`, {
-      headers: { 'User-Agent': 'TerraShift/2.0' }
-    });
-    if (geoRes.ok) {
-      const geoData = await geoRes.json();
-      const top = geoData.results?.[0];
-      if (top && top.latitude && top.longitude && top.country) {
-        return {
-          location_name: top.country ? `${top.name}, ${top.country}` : top.name,
-          latitude: Number(top.latitude),
-          longitude: Number(top.longitude),
-        };
+  let result = await queryOpenMeteo(queryPlace);
+  if (result) return result;
+
+  // 2. If multi-word search failed (e.g. Open-Meteo returns nothing for "morogoro tanzania"),
+  // try individual words from primary to secondary (e.g. "morogoro", then "tanzania")
+  if (tokens.length > 1) {
+    for (const token of tokens) {
+      if (!FORBIDDEN_GEO_WORDS.has(token) && token.length >= 4) {
+        result = await queryOpenMeteo(token);
+        if (result) return result;
       }
     }
-  } catch (err) {
-    console.warn('[TerraShift+ Dynamic Geocoding] Error:', err);
   }
 
   return null;
@@ -288,153 +319,87 @@ export async function onRequestPost(context) {
       const effectiveAction = actionType ||
         (qLower.includes('water stress') ? 'water_stress' :
         (qLower.includes('erosion') || qLower.includes('slope') || qLower.includes('mmomonyoko') || qLower.includes('mwinamo') ? 'erosion_risk' :
-        (qLower.includes('soil exposed') || qLower.includes('ardhi tupu') ? 'bare_soil_rain' :
-        (qLower.includes('saves the most water') || qLower.includes('compare to alternatives') || qLower.includes('rotation') ? 'strategy_water_bars' : null))));
+        (qLower.includes('soil moisture') || qLower.includes('smap') || qLower.includes('unyevu') ? 'smap_moisture' : null)));
 
       if (effectiveAction === 'water_stress') {
         await sendEvent('visual_card', {
-          card_type: 'water_stress_grid',
-          title: `3x3 Sub-Field Water Stress Heatmap (${locationLabel})`,
-          data: {
-            peak_cell: 'R1C1',
-            elev_min: centerElev - 5,
-            elev_max: centerElev + 5,
-            mean_wsi: 28,
-            annual_p: powerData.annual_precip_mm || 0,
-            annual_et0: Math.round((powerData.fao56_reference_et_mm_day || 3.5) * 365),
-          },
+          type: 'water_stress_strip',
+          title: isSw ? 'Kipimo cha Miezi 12 cha Unyevu (GPM & POWER)' : '12-Month Satellite Moisture Strip (GPM & POWER)',
+          months: [
+            { name: 'J', status: 'moist' }, { name: 'F', status: 'moist' }, { name: 'M', status: 'wet' },
+            { name: 'A', status: 'wet' }, { name: 'M', status: 'moist' }, { name: 'J', status: 'dry' },
+            { name: 'J', status: 'dry' }, { name: 'A', status: 'dry' }, { name: 'S', status: 'dry' },
+            { name: 'O', status: 'moist' }, { name: 'N', status: 'wet' }, { name: 'D', status: 'wet' },
+          ],
+          bare_months_count: 4,
+          highlight: isSw ? 'Miezi 4 ya Udongo Tupu / Ukame' : '4 Bare Months',
         });
       } else if (effectiveAction === 'erosion_risk') {
         await sendEvent('visual_card', {
-          card_type: 'erosion_rusle_grid',
-          title: `3x3 Topographic Runoff & RUSLE Soil Loss Stencil (${locationLabel})`,
-          data: {
-            peak_cell: 'R1C1',
-            center_elevation: centerElev,
-            center_slope: centerSlope,
-          },
-        });
-      } else if (effectiveAction === 'bare_soil_rain') {
-        await sendEvent('visual_card', {
-          card_type: 'bare_soil_rain',
-          title: `12-Month Satellite Moisture Strip (GPM & POWER) - ${locationLabel}`,
-          data: {},
-        });
-      } else if (effectiveAction === 'strategy_water_bars') {
-        await sendEvent('visual_card', {
-          card_type: 'strategy_water_bars',
-          title: `Comparative Crop Water Deficits & Margins - ${locationLabel}`,
-          data: {},
+          type: 'erosion_rusle_grid',
+          title: isSw ? 'Mwinamo na Mmomonyoko wa Udongo (RUSLE)' : 'Topographic Slope & RUSLE Soil Loss',
+          peak_slope_pct: centerSlope,
+          mean_rusle_t_ha: 14.8,
+          t_value: 8.0,
         });
       }
 
-      // 8. Grounded Agronomic Analysis & Synthesis
+      // 8. Dynamic Agronomic Reasoning via Gemini LLM or Scientific Synthesis
       let synthesis = '';
+
       if (geminiApiKey) {
         try {
-          const systemInstruction = `You are Afisa Ugani wa NASA (NASA Senior Agricultural Extension Officer & Biophysical Agronomist) for TerraShift+ (NASA Space Apps Challenge 2026: Field Shift).
-Your core duty is to help farmers and field officers understand soil health, satellite observations, crop rotations, and drought resilience with high professional empathy, practical farming wisdom, and deep scientific accuracy.
+          const systemInstruction = isSw
+            ? `Wewe ni TerraShift+ Afisa Ugani wa NASA wa Kilimo cha Ustahimilivu wa Tabianchi.
+Jibu kwa Kiswahili fasaha cha heshima, kueleweka na chenye sayansi halisi ya NASA.
+Data zilizopatikana sasa hivi moja kwa moja kutoka NASA na Open-Meteo kwa eneo la ${locationLabel} (${lat.toFixed(4)}, ${lon.toFixed(4)}):
+- Mvua ya Mwaka: ${powerData.annual_precip_mm || 0} mm
+- Joto la Wastani: ${powerData.mean_temp_c || 0} °C
+- Unyevu wa Mizizi (SMAP L4): ${powerData.gwet_root_current || 0.48}
+- Uvukizi wa FAO-56 (ET0): ${powerData.fao56_reference_et_mm_day || 4.2} mm/siku
+- Mwinamo wa Ardhi (SRTM): ${centerSlope.toFixed(1)}% (Mwinuko: ${centerElev} m)
 
-PROFESSIONAL EXTENSION OFFICER GUIDELINES:
-1. Act like a true Afisa Ugani wa Shambani:
-   - Begin with a warm, encouraging, and authoritative agricultural greeting.
-   - Explain the "WHY" behind the telemetry: explain what the satellite numbers mean for the farmer's actual crops, soil fertility, seed germination, and wallet.
-   - Provide concrete, step-by-step practical recommendations (e.g. planting depth, legume spacing, intercropping benefits, timing before dry spells).
-2. Deep Active Field Guidance:
-   - Current Field Location: "${locationLabel}" (Latitude: ${lat.toFixed(4)}, Longitude: ${lon.toFixed(4)}).
-   - Real-time Satellite Telemetry: Annual Rain: ${powerData.annual_precip_mm} mm, Mean Temp: ${powerData.mean_temp_c} °C, SMAP Root-Zone Soil Wetness: ${powerData.gwet_root_current}, Reference Evaporation (ET0): ${powerData.fao56_reference_et_mm_day} mm/day, Elevation: ${centerElev} m, Slope: ${centerSlope.toFixed(1)}%.
-   - If asked "Why is my soil exposed?": Detail the post-harvest fallow vulnerability (July-October), solar degradation of soil biocrusts, and prescribe deep-rooted legumes (Mbaazi/Pigeonpea & Kunde/Cowpea) to keep living roots in the ground all year round.
-   - If asked "Which rotation saves the most water?": Walk through the water budget savings (~110 mm/season) and how pulses reduce crop water stress while accumulating +75 kg N/ha of free organic nitrogen.
-   - If asked "Show Erosion & Slope Risk": Explain topographic runoff dynamics, slope percentage (${centerSlope.toFixed(1)}%), and how contour ridging + cover crops slash soil detachment from 14.8 down to 4.6 t/ha/yr.
-   - If asked "How does Maize compare to alternatives?": Provide a clear comparison of cereal water hunger (550-650 mm) vs hardy drought pulses, risk diversification, and market margins.
-   - If asked about an external country (e.g. Germany): Detail that region's agroclimatology, precipitation, winter cereals (wheat/barley/rapeseed), and satellite moisture regime.
-3. Tone: Respectful, insightful, practical, actionable. ZERO generic robotic summaries. ZERO hallucinations.
-4. Language: ${isSw ? 'Fluent, natural Tanzanian Kiswahili ya Kilimo na Ugani' : 'Clear, respectful, highly practical professional English'}.`;
+Tumia data hizi halisi kutoa majibu ya moja kwa moja kwa mkulima. Epuka takwimu za kubuni. Usitumie emoji.`
+            : `You are TerraShift+, the official NASA Earth Observation Agronomic Copilot.
+Answer professionally, clearly, and concisely using verified NASA and Earth science telemetry.
+Telemetry retrieved live right now for ${locationLabel} (${lat.toFixed(4)}, ${lon.toFixed(4)}):
+- Annual Precipitation: ${powerData.annual_precip_mm || 0} mm
+- Mean Temperature: ${powerData.mean_temp_c || 0} °C
+- Root-Zone Soil Moisture (NASA SMAP L4): ${powerData.gwet_root_current || 0.48}
+- Reference Evapotranspiration (FAO-56 ET0): ${powerData.fao56_reference_et_mm_day || 4.2} mm/day
+- Topographic Slope (SRTM DEM): ${centerSlope.toFixed(1)}% (Elevation: ${centerElev} m)
 
-          const promptContent = `USER QUERY: "${question}"
-TARGET LOCATION: ${locationLabel} (Latitude: ${lat.toFixed(4)}, Longitude: ${lon.toFixed(4)})
-REAL-TIME RETRIEVED TELEMETRY:
-- Annual Precipitation: ${powerData.annual_precip_mm} mm
-- Mean Temperature: ${powerData.mean_temp_c} °C
-- Root-Zone Wetness (SMAP L4): ${powerData.gwet_root_current}
-- Reference Evapotranspiration (ET0): ${powerData.fao56_reference_et_mm_day} mm/day
-- Surface Elevation: ${centerElev} m
-- Mean Slope: ${centerSlope.toFixed(1)} %
+Answer the farmer's question directly with these live parameters without emojis or fluff.`;
 
-Provide your complete, structured, highly educational, and practical Afisa Ugani response.`;
-
-          const models = ['gemini-2.5-flash', 'gemini-1.5-flash'];
-          for (const model of models) {
-            const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`;
-            const res = await fetch(geminiUrl, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                contents: [{ parts: [{ text: `${systemInstruction}\n\n${promptContent}` }] }],
-                generationConfig: {
-                  temperature: 0.25,
-                  maxOutputTokens: 1200,
-                },
-              }),
-            });
-
-            if (res.ok) {
-              const resData = await res.json();
-              const candText = resData.candidates?.[0]?.content?.parts?.[0]?.text;
-              if (candText && candText.trim().length > 0) {
-                synthesis = candText.trim();
-                break;
+          const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`;
+          const geminiReq = await fetch(geminiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{
+                parts: [{ text: `${systemInstruction}\n\nFarmer Query: ${question}` }]
+              }],
+              generationConfig: {
+                temperature: 0.2,
+                maxOutputTokens: 512,
               }
-            }
+            })
+          });
+
+          if (geminiReq.ok) {
+            const geminiData = await geminiReq.json();
+            synthesis = geminiData.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
           }
         } catch (llmErr) {
-          console.warn('[TerraShift+ LLM] Generation error:', llmErr);
+          console.warn('[TerraShift+ Dynamic LLM] Error:', llmErr);
         }
       }
 
-      // Fallback synthesis if LLM API key unavailable
+      // Fallback to deterministic physical synthesis if Gemini is unavailable or rate limited
       if (!synthesis) {
-        if (qLower.includes('why is my soil exposed') || qLower.includes('soil exposed') || qLower.includes('ardhi tupu')) {
+        if (isForeignPlace) {
           synthesis = isSw
-            ? `**Kwanini Udongo Wako Uko Wazi (${locationLabel}):**\n\n` +
-              `1. **Kipindi cha Baada ya Mavuno:** Baada ya kuvuna mahindi mwezi Mei/Juni, hakuna uoto unaobaki shambani. Satelaiti za MODIS na GPM zinaonyesha miezi 4 mfululizo (Julai hadi Oktoba) ambapo kiashiria cha uoto (NDVI) kinashuka chini ya 0.25.\n` +
-              `2. **Athari za Jua na Upepo:** Udongo unakabiliwa na uvukizi mkubwa (ET0 ya ${powerData.fao56_reference_et_mm_day || 4.2} mm/siku), joto kali, na upotevu wa viumbe hai vya udongo (microbial biocrusts).\n` +
-              `3. **Suluhisho la Mzunguko:** Kupanda **Mbaazi (Pigeonpea)** au **Kunde (Cowpea)** huweka tabaka la kijani shambani hadi msimu mpya, likihifadhi unyevu wa SMAP L4 na kuongeza naitrojeni asilia.`
-            : `**Why Your Soil Is Exposed (${locationLabel}):**\n\n` +
-              `1. **Post-Harvest Fallow Window:** Satellite telemetry (MODIS & GPM) indicates a 4-month dry window (typically July through October) where vegetative cover drops below 0.25 NDVI following standard maize harvest.\n` +
-              `2. **Atmospheric Evaporation & Topsoil Degradation:** With solar radiation driving reference evapotranspiration (ET0) of **${powerData.fao56_reference_et_mm_day || 4.2} mm/day** against minimal rain, unprotected topsoil desiccates, depleting active microbial biocrusts.\n` +
-              `3. **Resilience Solution:** Intercropping or rotating with semi-perennial deep-rooted legumes (**Pigeonpea**, **Cowpea**) maintains green canopy coverage through the dry season, preserving residual root-zone moisture and fixing biological nitrogen.`;
-        } else if (qLower.includes('saves the most water') || qLower.includes('rotation saves')) {
-          synthesis = isSw
-            ? `**Mzunguko Unaookoa Maji Zaidi (${locationLabel}):**\n\n` +
-              `- Mkakati wa **Ustahimilivu wa Ukame (Resilience-First: Mbaazi na Kunde)** unapunguza upungufu wa unyevu kwa takriban **110 mm kwa msimu** ikilinganishwa na mahindi ya mfululizo.\n` +
-              `- Mbaazi ina mizizi mirefu (mita 1.5–2.0) inayovuta unyevu wa tabaka la chini bila kushindana na tabaka la juu, ikihifadhi unyevu wa wastani wa SMAP (${powerData.gwet_root_current || 0.48}).`
-            : `**Rotation That Saves the Most Water (${locationLabel}):**\n\n` +
-              `- The **Resilience-First Strategy (Pigeonpea & Cowpea)** reduces seasonal crop evapotranspirative deficit by **~110 mm/season** relative to continuous maize monoculture.\n` +
-              `- Deep-rooted taproots (1.5–2.0 m) tap into sub-soil moisture reservoirs characterized by NASA SMAP L4 wetness (${powerData.gwet_root_current || 0.48}), keeping the root-zone buffered against intra-seasonal dry spells.`;
-        } else if (qLower.includes('erosion') || qLower.includes('slope') || qLower.includes('mmomonyoko')) {
-          synthesis = isSw
-            ? `**Tathmini ya Mwinamo na Mmomonyoko wa RUSLE (${locationLabel}):**\n\n` +
-              `- Mwinamo wa wastani wa eneo hili ni **${centerSlope.toFixed(1)}%** kwenye mwinuko wa mita **${centerElev}**.\n` +
-              `- Chini ya kilimo cha kawaida bila mazao ya kufunika udongo, mmomonyoko unafikia takriban tani **14.8/ha/mwaka** (zaidi ya kiwango salama cha tani 8.0).\n` +
-              `- Kubadili kwenda mzunguko wenye mazao ya kufunika ardhi kunapunguza upotevu wa udongo hadi tani **4.6/ha/mwaka** (upungufu wa 68%).`
-            : `**Topographic Slope & RUSLE Soil Erosion Assessment (${locationLabel}):**\n\n` +
-              `- Surface topography exhibits a mean slope of **${centerSlope.toFixed(1)}%** at elevation **${centerElev} m**.\n` +
-              `- Under conventional bare-soil maize fallow, predicted topsoil loss reaches **14.8 t/ha/yr**, exceeding the sustainable threshold (8.0 t/ha/yr).\n` +
-              `- Incorporating diversified cover-crop rotations suppresses sheet runoff detachment down to **4.6 t/ha/yr** (a 68% reduction).`;
-        } else if (qLower.includes('maize compare') || qLower.includes('how does maize')) {
-          synthesis = isSw
-            ? `**Ulinganisho wa Mahindi na Mazao Mbadala (${locationLabel}):**\n\n` +
-              `- **Mahitaji ya Maji:** Mahindi yanahitaji 550–650 mm za mvua/msimu, wakati Mbaazi na Kunde zinastawi kwa 350–450 mm.\n` +
-              `- **Naitrojeni ya Udongo:** Mahindi ya mfululizo hunyonya naitrojeni ardhini, ilhali mikunde inarutubisha udongo kwa kuongeza kilo **+65–85 N/ha** ya bure kwa msimu unaofuata.\n` +
-              `- **Ustahimilivu:** Katika misimu yenye ukame wa siku 20+, mahindi yanaweza kukauka kabisa, ilhali mbaazi hudumu kutokana na mfumo imara wa mizizi.`
-            : `**How Maize Compares to Drought-Resilient Alternatives (${locationLabel}):**\n\n` +
-              `- **Water Thirst:** Conventional Maize demands 550–650 mm/season, leaving fields vulnerable under erratic rainfall, whereas Pigeonpea/Cowpea require only 350–450 mm.\n` +
-              `- **Soil Fertility:** Continuous cereal planting depletes soil nitrogen, whereas nodulating legumes fix **+65 to 85 kg N/ha** of bioavailable atmospheric nitrogen for subsequent rotations.\n` +
-              `- **Drought Buffering:** During 20+ day dry spells, maize yields drop sharply, whereas deep taproot legumes survive by accessing sub-surface SMAP moisture stores.`;
-        } else if (isForeignPlace) {
-          synthesis = isSw
-            ? `Takwimu za moja kwa moja za satelaiti za NASA kwa **${locationLabel}** (${lat.toFixed(4)}, ${lon.toFixed(4)}):\n\n` +
+            ? `Takwimu za moja kwa moja za satelaiti za NASA kwa eneo la **${locationLabel}** (${lat.toFixed(4)}, ${lon.toFixed(4)}):\n\n` +
               `- **Mvua ya Kila Mwaka:** ${powerData.annual_precip_mm || 0} mm\n` +
               `- **Joto la Wastani:** ${powerData.mean_temp_c || 0} °C\n` +
               `- **Kielezo cha Unyevu wa Mizizi (SMAP L4):** ${powerData.gwet_root_current || 0}\n` +
@@ -490,8 +455,8 @@ Provide your complete, structured, highly educational, and practical Afisa Ugani
 
   return new Response(readable, {
     headers: {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
+      'Content-Type': 'text/event-stream; charset=utf-8',
+      'Cache-Control': 'no-cache, no-transform',
       'Connection': 'keep-alive',
       'Access-Control-Allow-Origin': '*',
     },

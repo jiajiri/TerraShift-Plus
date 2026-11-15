@@ -18,7 +18,9 @@
   "paths": {
     "/api/health": {
       "get": {
-        "tags": ["System"],
+        "tags": [
+          "System"
+        ],
         "summary": "Health check",
         "description": "Returns operational status and active mission health.",
         "responses": {
@@ -29,9 +31,18 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "status": { "type": "string", "example": "healthy" },
-                    "version": { "type": "string", "example": "2.0.0" },
-                    "runtime": { "type": "string", "example": "Cloudflare Pages Functions (Edge V8)" }
+                    "status": {
+                      "type": "string",
+                      "example": "healthy"
+                    },
+                    "version": {
+                      "type": "string",
+                      "example": "2.0.0"
+                    },
+                    "runtime": {
+                      "type": "string",
+                      "example": "Cloudflare Pages Functions (Edge V8)"
+                    }
                   }
                 }
               }
@@ -42,7 +53,9 @@
     },
     "/api/v1/geoip": {
       "get": {
-        "tags": ["System"],
+        "tags": [
+          "System"
+        ],
         "summary": "Edge Geo-IP detection",
         "description": "Returns estimated geographical coordinates and regional label for the visitor using Cloudflare Edge metadata or fallback lookup.",
         "responses": {
@@ -53,14 +66,38 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": { "type": "boolean", "example": true },
-                    "latitude": { "type": "number", "example": -6.1630 },
-                    "longitude": { "type": "number", "example": 35.7516 },
-                    "city": { "type": "string", "example": "Dodoma" },
-                    "region": { "type": "string", "example": "Dodoma Region" },
-                    "country": { "type": "string", "example": "Tanzania" },
-                    "label": { "type": "string", "example": "Dodoma, Dodoma Region, Tanzania" },
-                    "source": { "type": "string", "example": "cloudflare-edge-cf" }
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "latitude": {
+                      "type": "number",
+                      "example": -6.163
+                    },
+                    "longitude": {
+                      "type": "number",
+                      "example": 35.7516
+                    },
+                    "city": {
+                      "type": "string",
+                      "example": "Dodoma"
+                    },
+                    "region": {
+                      "type": "string",
+                      "example": "Dodoma Region"
+                    },
+                    "country": {
+                      "type": "string",
+                      "example": "Tanzania"
+                    },
+                    "label": {
+                      "type": "string",
+                      "example": "Dodoma, Dodoma Region, Tanzania"
+                    },
+                    "source": {
+                      "type": "string",
+                      "example": "cloudflare-edge-cf"
+                    }
                   }
                 }
               }
@@ -71,7 +108,9 @@
     },
     "/api/v1/crops": {
       "get": {
-        "tags": ["Agronomy"],
+        "tags": [
+          "Agronomy"
+        ],
         "summary": "List FAO EcoCrop physiological crop catalog",
         "description": "Returns externalized FAO EcoCrop catalog including base temperatures, rooting depths, and GDD requirements.",
         "responses": {
@@ -84,10 +123,22 @@
                   "items": {
                     "type": "object",
                     "properties": {
-                      "id": { "type": "string", "example": "maize" },
-                      "name": { "type": "string", "example": "Maize (Zea mays)" },
-                      "role": { "type": "string", "example": "grain" },
-                      "family": { "type": "string", "example": "Poaceae" }
+                      "id": {
+                        "type": "string",
+                        "example": "maize"
+                      },
+                      "name": {
+                        "type": "string",
+                        "example": "Maize (Zea mays)"
+                      },
+                      "role": {
+                        "type": "string",
+                        "example": "grain"
+                      },
+                      "family": {
+                        "type": "string",
+                        "example": "Poaceae"
+                      }
                     }
                   }
                 }
@@ -99,12 +150,30 @@
     },
     "/api/v1/pipeline/health": {
       "get": {
-        "tags": ["NASA Telemetry"],
+        "tags": [
+          "NASA Telemetry"
+        ],
         "summary": "Audit NASA CMR & Harvest Portal availability for coordinates",
         "description": "Validates active mission granules and latency for a given field centroid.",
         "parameters": [
-          { "name": "lat", "in": "query", "required": true, "schema": { "type": "number", "example": -6.163 } },
-          { "name": "lon", "in": "query", "required": true, "schema": { "type": "number", "example": 35.7516 } }
+          {
+            "name": "lat",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "example": -6.163
+            }
+          },
+          {
+            "name": "lon",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "example": 35.7516
+            }
+          }
         ],
         "responses": {
           "200": {
@@ -114,8 +183,14 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "status": { "type": "string", "example": "healthy" },
-                    "missions_audited": { "type": "integer", "example": 5 }
+                    "status": {
+                      "type": "string",
+                      "example": "healthy"
+                    },
+                    "missions_audited": {
+                      "type": "integer",
+                      "example": 5
+                    }
                   }
                 }
               }
@@ -126,7 +201,9 @@
     },
     "/api/v1/mcp/tools": {
       "get": {
-        "tags": ["MCP Copilot"],
+        "tags": [
+          "MCP Copilot"
+        ],
         "summary": "List available Model Context Protocol (MCP) tools",
         "description": "Provides tool manifest schemas for agentic tool calling.",
         "responses": {
@@ -137,7 +214,9 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "tools": { "type": "array" }
+                    "tools": {
+                      "type": "array"
+                    }
                   }
                 }
               }
@@ -148,7 +227,9 @@
     },
     "/api/v1/optimize/stream": {
       "post": {
-        "tags": ["Optimization (SSE)"],
+        "tags": [
+          "Optimization (SSE)"
+        ],
         "summary": "Stream live NASA/Soil/DEM telemetry and 5-year Pareto crop rotation strategies",
         "description": "Server-Sent Events endpoint streaming terrain, 3x3 vulnerability grid, soil parameters, climate metrics, and 4 Pareto rotation strategies.",
         "requestBody": {
@@ -157,15 +238,41 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["latitude", "longitude"],
+                "required": [
+                  "latitude",
+                  "longitude"
+                ],
                 "properties": {
-                  "latitude": { "type": "number", "example": -6.163 },
-                  "longitude": { "type": "number", "example": 35.7516 },
-                  "language": { "type": "string", "enum": ["en", "sw"], "default": "en" },
-                  "precip_delta_pct": { "type": "number", "default": 0 },
-                  "temp_delta_c": { "type": "number", "default": 0 },
-                  "constraints": { "type": "object" },
-                  "soil_overrides": { "type": "object" }
+                  "latitude": {
+                    "type": "number",
+                    "example": -6.163
+                  },
+                  "longitude": {
+                    "type": "number",
+                    "example": 35.7516
+                  },
+                  "language": {
+                    "type": "string",
+                    "enum": [
+                      "en",
+                      "sw"
+                    ],
+                    "default": "en"
+                  },
+                  "precip_delta_pct": {
+                    "type": "number",
+                    "default": 0
+                  },
+                  "temp_delta_c": {
+                    "type": "number",
+                    "default": 0
+                  },
+                  "constraints": {
+                    "type": "object"
+                  },
+                  "soil_overrides": {
+                    "type": "object"
+                  }
                 }
               }
             }
@@ -176,7 +283,9 @@
             "description": "Server-Sent Events stream (init, step, terrain, vulnerability_grid, soil, climate, optimization, done)",
             "content": {
               "text/event-stream": {
-                "schema": { "type": "string" }
+                "schema": {
+                  "type": "string"
+                }
               }
             }
           }
@@ -185,7 +294,9 @@
     },
     "/api/v1/chat/stream": {
       "post": {
-        "tags": ["MCP Copilot"],
+        "tags": [
+          "MCP Copilot"
+        ],
         "summary": "Stream bilingual (EN/SW) grounded Field Advisor responses with MCP tool execution",
         "description": "Executes MCP tools and streams conversational agronomic guidance with verified citations and numerical guardrails.",
         "requestBody": {
@@ -194,12 +305,29 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["question"],
+                "required": [
+                  "question"
+                ],
                 "properties": {
-                  "question": { "type": "string", "example": "Why is my soil exposed in July?" },
-                  "language": { "type": "string", "enum": ["auto", "en", "sw"], "default": "auto" },
-                  "optimization_context": { "type": "object" },
-                  "climate_context": { "type": "object" }
+                  "question": {
+                    "type": "string",
+                    "example": "Why is my soil exposed in July?"
+                  },
+                  "language": {
+                    "type": "string",
+                    "enum": [
+                      "auto",
+                      "en",
+                      "sw"
+                    ],
+                    "default": "auto"
+                  },
+                  "optimization_context": {
+                    "type": "object"
+                  },
+                  "climate_context": {
+                    "type": "object"
+                  }
                 }
               }
             }
@@ -210,7 +338,135 @@
             "description": "Server-Sent Events stream (tool_call, tool_result, token, verified_links, done)",
             "content": {
               "text/event-stream": {
-                "schema": { "type": "string" }
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/voice/tts": {
+      "post": {
+        "tags": [
+          "Voice & Audio"
+        ],
+        "summary": "Text-to-Speech synthesis (EN/SW)",
+        "description": "Synthesizes clean text into natural speech via Google Gemini TTS with 44-byte RIFF WAV audio packaging and automatic browser fallback.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "text"
+                ],
+                "properties": {
+                  "text": {
+                    "type": "string",
+                    "example": "Habari za asubuhi, unyevu wa udongo wako uko salama."
+                  },
+                  "lang": {
+                    "type": "string",
+                    "enum": [
+                      "en",
+                      "sw"
+                    ],
+                    "default": "en",
+                    "example": "sw"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Audio payload in base64 or fallback instruction",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "audio_base64": {
+                      "type": "string",
+                      "description": "Base64 encoded RIFF WAV audio"
+                    },
+                    "mime_type": {
+                      "type": "string",
+                      "example": "audio/wav"
+                    },
+                    "fallback": {
+                      "type": "boolean",
+                      "example": false
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/voice/transcribe": {
+      "post": {
+        "tags": [
+          "Voice & Audio"
+        ],
+        "summary": "Speech-to-Text audio transcription (EN/SW)",
+        "description": "Transcribes recorded speech audio into plain text via Gemini multimodal recognition.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "audio_base64"
+                ],
+                "properties": {
+                  "audio_base64": {
+                    "type": "string",
+                    "description": "Base64-encoded audio bytes (WebM, WAV, MP4)"
+                  },
+                  "mime_type": {
+                    "type": "string",
+                    "example": "audio/webm"
+                  },
+                  "lang": {
+                    "type": "string",
+                    "enum": [
+                      "auto",
+                      "en",
+                      "sw"
+                    ],
+                    "default": "auto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Transcribed text and detected language",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "transcript": {
+                      "type": "string",
+                      "example": "hat is data form morogoro tanzania"
+                    },
+                    "detected_lang": {
+                      "type": "string",
+                      "example": "en"
+                    }
+                  }
+                }
               }
             }
           }

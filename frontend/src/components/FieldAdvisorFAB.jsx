@@ -4,6 +4,7 @@ import { MessageSquare, X, Send, ExternalLink, Map, Layers, Droplets, ShieldAler
 import { streamGroundedChat } from '../api';
 import { useI18n } from '../i18n/I18nContext';
 import MiniSatelliteView from './MiniSatelliteView';
+import { wrapPcmInWavHeader } from '../utils/wavHelper';
 
 // Helper to render text with clean typography (strip raw markdown asterisks/hashes into clean headers & bullets)
 function FormattedMessageText({ text, isStreaming, analyzingLabel }) {
@@ -115,6 +116,8 @@ export default function FieldAdvisorFAB({
   const messagesEndRef = useRef(null);
   const abortRef = useRef(null);
   const recognitionRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const mediaStreamRef = useRef(null);
   const audioPlayerRef = useRef(null);
 
   // Stop any active audio and speech synthesis
@@ -129,7 +132,7 @@ export default function FieldAdvisorFAB({
     setSpeakingIndex(null);
   }, []);
 
-  // Stop voice recording
+  // Stop voice recording (both SpeechRecognition and MediaRecorder)
   const stopRecording = useCallback(() => {
     if (recognitionRef.current) {
       try {
@@ -137,12 +140,24 @@ export default function FieldAdvisorFAB({
       } catch (e) {}
       recognitionRef.current = null;
     }
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      try {
+        mediaRecorderRef.current.stop();
+      } catch (e) {}
+      mediaRecorderRef.current = null;
+    }
+    if (mediaStreamRef.current) {
+      try {
+        mediaStreamRef.current.getTracks().forEach((track) => track.stop());
+      } catch (e) {}
+      mediaStreamRef.current = null;
+    }
     setIsRecording(false);
     setRecordingStatus('');
   }, []);
 
-  // Voice Input (Speech-to-Text) using Web Speech API with Swahili & English synchronization
-  const handleToggleMic = () => {
+  // Voice Input (Speech-to-Text) with MediaRecorder + Gemini fallback
+  const handleToggleMic = async () => {
     if (isRecording) {
       stopRecording();
       return;
@@ -153,47 +168,105 @@ export default function FieldAdvisorFAB({
     if (typeof window === 'undefined') return;
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
-    if (!SpeechRecognition) {
-      alert(lang === 'sw' ? 'Kivinjari hiki hakitumii utambuzi wa sauti moja kwa moja. Tafadhali tumia Chrome au Edge.' : 'Speech recognition is not supported in this browser. Please use Chrome or Edge.');
+    // 1. If SpeechRecognition is supported, use it for zero-latency live streaming
+    if (SpeechRecognition) {
+      try {
+        const recognition = new SpeechRecognition();
+        recognition.continuous = false;
+        recognition.interimResults = true;
+        recognition.lang = lang === 'sw' ? 'sw-TZ' : 'en-US';
+
+        recognitionRef.current = recognition;
+        setIsRecording(true);
+        setRecordingStatus(lang === 'sw' ? 'Inasikiliza Kiswahili...' : 'Listening in English...');
+
+        recognition.onresult = (event) => {
+          let finalTranscript = '';
+          for (let i = event.resultIndex; i < event.results.length; ++i) {
+            if (event.results[i].isFinal) {
+              finalTranscript += event.results[i][0].transcript;
+            }
+          }
+          if (finalTranscript) {
+            setInputValue((prev) => (prev ? `${prev} ${finalTranscript.trim()}` : finalTranscript.trim()));
+            stopRecording();
+          }
+        };
+
+        recognition.onerror = (event) => {
+          console.warn('[FieldAdvisor Mic] SpeechRecognition error, trying MediaRecorder fallback:', event.error);
+          stopRecording();
+          startMediaRecorderFallback();
+        };
+
+        recognition.onend = () => {
+          stopRecording();
+        };
+
+        recognition.start();
+        return;
+      } catch (err) {
+        console.warn('[FieldAdvisor Mic] SpeechRecognition init error:', err);
+      }
+    }
+
+    // 2. MediaRecorder fallback for Firefox, Safari, or non-Chrome environments
+    startMediaRecorderFallback();
+  };
+
+  const startMediaRecorderFallback = async () => {
+    if (!navigator?.mediaDevices?.getUserMedia) {
+      alert(lang === 'sw' ? 'Kivinjari hakiruhusu kurekodi sauti.' : 'Audio recording is not supported in this browser.');
       return;
     }
 
     try {
-      const recognition = new SpeechRecognition();
-      recognition.continuous = false;
-      recognition.interimResults = true;
-      recognition.lang = lang === 'sw' ? 'sw-TZ' : 'en-US';
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaStreamRef.current = stream;
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4';
+      const recorder = new MediaRecorder(stream, { mimeType });
+      mediaRecorderRef.current = recorder;
+      const chunks = [];
 
-      recognitionRef.current = recognition;
-      setIsRecording(true);
-      setRecordingStatus(lang === 'sw' ? 'Inasikiliza Kiswahili...' : 'Listening in English...');
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunks.push(e.data);
+      };
 
-      recognition.onresult = (event) => {
-        let finalTranscript = '';
-        for (let i = event.resultIndex; i < event.results.length; ++i) {
-          if (event.results[i].isFinal) {
-            finalTranscript += event.results[i][0].transcript;
+      recorder.onstop = async () => {
+        setIsRecording(false);
+        setRecordingStatus(lang === 'sw' ? 'Inatafsiri sauti...' : 'Transcribing speech...');
+        const blob = new Blob(chunks, { type: mimeType });
+        const reader = new FileReader();
+        reader.onloadend = async () => {
+          const base64Audio = reader.result.split(',')[1];
+          try {
+            const res = await fetch('/api/v1/voice/transcribe', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ audio_base64: base64Audio, mime_type: mimeType, lang }),
+            });
+            if (res.ok) {
+              const data = await res.json();
+              if (data.transcript) {
+                setInputValue((prev) => (prev ? `${prev} ${data.transcript.trim()}` : data.transcript.trim()));
+              }
+            }
+          } catch (e) {
+            console.warn('[FieldAdvisor Voice] Transcription error:', e);
+          } finally {
+            setRecordingStatus('');
           }
-        }
-        if (finalTranscript) {
-          setInputValue((prev) => (prev ? `${prev} ${finalTranscript.trim()}` : finalTranscript.trim()));
-          stopRecording();
-        }
+        };
+        reader.readAsDataURL(blob);
       };
 
-      recognition.onerror = (event) => {
-        console.warn('[FieldAdvisor Mic] Error:', event.error);
-        stopRecording();
-      };
-
-      recognition.onend = () => {
-        stopRecording();
-      };
-
-      recognition.start();
+      recorder.start();
+      setIsRecording(true);
+      setRecordingStatus(lang === 'sw' ? 'Inarekodi sauti (Gusa kusimamisha)...' : 'Recording audio (Click to stop)...');
     } catch (err) {
-      console.warn('[FieldAdvisor Mic] Initialization error:', err);
-      stopRecording();
+      console.warn('[FieldAdvisor Mic] getUserMedia permission error:', err);
+      setIsRecording(false);
+      setRecordingStatus('');
     }
   };
 
@@ -219,18 +292,32 @@ export default function FieldAdvisorFAB({
       if (res.ok) {
         const data = await res.json();
         if (data.audio_base64 && !data.fallback) {
-          const audio = new Audio(`data:${data.mime_type || 'audio/wav'};base64,${data.audio_base64}`);
-          audioPlayerRef.current = audio;
-          audio.onended = () => setSpeakingIndex(null);
-          audio.onerror = () => {
-            fallbackBrowserSpeech(messageText, speechLang);
-          };
-          audio.play();
-          return;
+          try {
+            // Guarantee valid WAV bytes even if edge returned raw PCM
+            const rawBytes = Uint8Array.from(atob(data.audio_base64), c => c.charCodeAt(0));
+            const wavBytes = wrapPcmInWavHeader(rawBytes, 24000, 1, 16);
+            const blob = new Blob([wavBytes], { type: 'audio/wav' });
+            const blobUrl = URL.createObjectURL(blob);
+
+            const audio = new Audio(blobUrl);
+            audioPlayerRef.current = audio;
+            audio.onended = () => {
+              URL.revokeObjectURL(blobUrl);
+              setSpeakingIndex(null);
+            };
+            audio.onerror = () => {
+              URL.revokeObjectURL(blobUrl);
+              fallbackBrowserSpeech(messageText, speechLang);
+            };
+            await audio.play();
+            return;
+          } catch (playErr) {
+            console.warn('[FieldAdvisor TTS] Audio element playback failed, invoking browser synthesis:', playErr);
+          }
         }
       }
     } catch (err) {
-      console.warn('[FieldAdvisor TTS] Edge TTS failed, invoking browser synthesis:', err);
+      console.warn('[FieldAdvisor TTS] Edge TTS request failed, invoking browser synthesis:', err);
     }
 
     fallbackBrowserSpeech(messageText, speechLang);

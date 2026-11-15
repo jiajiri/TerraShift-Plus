@@ -535,10 +535,42 @@ class TerraShiftAPIHandler(BaseHTTPRequestHandler):
                         parts = data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
                         audio_part = next((p for p in parts if p.get("inlineData", {}).get("mimeType", "").startswith("audio/")), None)
                         if audio_part:
+                            raw_b64 = audio_part["inlineData"]["data"]
+                            # Ensure 44-byte RIFF WAV header for browser audio playback compatibility
+                            try:
+                                import base64, struct
+                                pcm_bytes = base64.b64decode(raw_b64)
+                                if not pcm_bytes.startswith(b"RIFF"):
+                                    data_size = len(pcm_bytes)
+                                    sample_rate = 24000
+                                    num_channels = 1
+                                    bits_per_sample = 16
+                                    byte_rate = sample_rate * num_channels * bits_per_sample // 8
+                                    block_align = num_channels * bits_per_sample // 8
+                                    wav_header = struct.pack(
+                                        "<4sI4s4sIHHIIHH4sI",
+                                        b"RIFF",
+                                        36 + data_size,
+                                        b"WAVE",
+                                        b"fmt ",
+                                        16,
+                                        1,  # PCM
+                                        num_channels,
+                                        sample_rate,
+                                        byte_rate,
+                                        block_align,
+                                        bits_per_sample,
+                                        b"data",
+                                        data_size,
+                                    )
+                                    raw_b64 = base64.b64encode(wav_header + pcm_bytes).decode("ascii")
+                            except Exception:
+                                pass
+
                             self._set_headers(200)
                             self.wfile.write(json.dumps({
-                                "audio_base64": audio_part["inlineData"]["data"],
-                                "mime_type": audio_part["inlineData"].get("mimeType", "audio/wav"),
+                                "audio_base64": raw_b64,
+                                "mime_type": "audio/wav",
                                 "fallback": False
                             }).encode("utf-8"))
                             return

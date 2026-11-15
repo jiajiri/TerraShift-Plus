@@ -1,7 +1,9 @@
 /**
  * Cloudflare Pages Function: POST /api/v1/voice/tts
- * Synthesizes text into natural speech via Google Gemini API with fallback flag.
+ * Synthesizes text into natural speech via Google Gemini API with valid WAV packaging.
  */
+
+import { pcmToWav } from './wav_helper.js';
 
 export async function onRequestPost(context) {
   let reqData = {};
@@ -22,7 +24,6 @@ export async function onRequestPost(context) {
     });
   }
 
-  // If no API key or text is very long, return fallback so frontend uses window.speechSynthesis
   if (!apiKey) {
     return new Response(JSON.stringify({ fallback: true, reason: 'no_api_key' }), {
       status: 200,
@@ -45,7 +46,6 @@ export async function onRequestPost(context) {
         ? 'Soma maneno haya kwa sauti ya Kiswahili fasaha cha Tanzania, kwa sauti ya utulivu, heshima, na kueleweka kama Afisa Ugani wa Kilimo.'
         : 'Read these sentences aloud in natural, clear, professional English as a precision agriculture advisor.';
 
-    // Try Gemini TTS model
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`;
     const geminiRes = await fetch(url, {
       method: 'POST',
@@ -77,10 +77,42 @@ export async function onRequestPost(context) {
       const data = await geminiRes.json();
       const audioPart = data.candidates?.[0]?.content?.parts?.find((p) => p.inlineData?.mimeType?.startsWith('audio/'));
       if (audioPart && audioPart.inlineData?.data) {
+        const rawB64 = audioPart.inlineData.data;
+        const mime = audioPart.inlineData.mimeType || '';
+
+        // If PCM or headerless, wrap in valid 44-byte WAV header so browsers can play it natively
+        let finalB64 = rawB64;
+        let finalMime = 'audio/wav';
+
+        try {
+          const binaryStr = atob(rawB64);
+          const pcmBytes = new Uint8Array(binaryStr.length);
+          for (let i = 0; i < binaryStr.length; i++) {
+            pcmBytes[i] = binaryStr.charCodeAt(i);
+          }
+
+          // Check if it already has RIFF header
+          const isRiff = pcmBytes.length > 4 &&
+            pcmBytes[0] === 0x52 && pcmBytes[1] === 0x49 &&
+            pcmBytes[2] === 0x46 && pcmBytes[3] === 0x46;
+
+          if (!isRiff) {
+            const wavBytes = pcmToWav(pcmBytes, 24000, 1, 16);
+            let wavBinary = '';
+            const chunkSize = 8192;
+            for (let i = 0; i < wavBytes.length; i += chunkSize) {
+              wavBinary += String.fromCharCode.apply(null, wavBytes.subarray(i, i + chunkSize));
+            }
+            finalB64 = btoa(wavBinary);
+          }
+        } catch (convErr) {
+          console.warn('[TerraShift+ TTS] WAV encapsulation warning:', convErr);
+        }
+
         return new Response(
           JSON.stringify({
-            audio_base64: audioPart.inlineData.data,
-            mime_type: audioPart.inlineData.mimeType || 'audio/wav',
+            audio_base64: finalB64,
+            mime_type: finalMime,
             fallback: false,
           }),
           {
