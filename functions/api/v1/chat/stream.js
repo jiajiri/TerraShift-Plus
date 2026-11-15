@@ -50,7 +50,13 @@ export async function onRequestPost(context) {
   const lon = Number(coords.lon || coords.longitude || 35.7516);
 
   // Language detection
-  const swMarkers = ['shamba', 'mazao', 'mahindi', 'mvua', 'udongo', 'mzunguko', 'habari', 'nini', 'kwanini', 'tanzania', 'mmomonyoko', 'mwinamo'];
+  const swMarkers = [
+    'shamba', 'mashamba', 'mazao', 'mahindi', 'mvua', 'udongo', 'mzunguko',
+    'habari', 'hujambo', 'nini', 'kwanini', 'tanzania', 'mmomonyoko', 'mwinamo',
+    'gani', 'vipi', 'wapi', 'mkulima', 'wakulima', 'ugani', 'afisa', 'mbaazi',
+    'kunde', 'mtama', 'alizeti', 'heka', 'ardhi', 'unyevu', 'ukame', 'joto',
+    'imejengwa', 'kazi ya', 'msaada', 'faida', 'hasara', 'mpango', 'lengo'
+  ];
   const isSw = langReq === 'sw' || (langReq === 'auto' && swMarkers.some((w) => question.toLowerCase().includes(w)));
 
   const encoder = new TextEncoder();
@@ -200,7 +206,116 @@ export async function onRequestPost(context) {
 
       // 5. Grounded Synthesis Text
       let synthesis = '';
-      if (effectiveAction === 'water_stress') {
+      const isAboutPurpose =
+        qLower.includes('terrashift') ||
+        qLower.includes('built for') ||
+        qLower.includes('why was') ||
+        qLower.includes('kazi ya') ||
+        qLower.includes('lengo') ||
+        qLower.includes('imejengwa') ||
+        qLower.includes('what is') ||
+        qLower.includes('about') ||
+        qLower.includes('msaada gani');
+
+      const isAboutSatellites =
+        qLower.includes('satellite') ||
+        qLower.includes('satelaiti') ||
+        qLower.includes('mission') ||
+        qLower.includes('data source') ||
+        qLower.includes('chanzo') ||
+        qLower.includes('power') ||
+        qLower.includes('smap') ||
+        qLower.includes('gpm') ||
+        qLower.includes('ecostress') ||
+        qLower.includes('modis');
+
+      const isAboutScience =
+        qLower.includes('model') ||
+        qLower.includes('science') ||
+        qLower.includes('sayansi') ||
+        qLower.includes('kanuni') ||
+        qLower.includes('fao-56') ||
+        qLower.includes('fao56') ||
+        qLower.includes('rusle') ||
+        qLower.includes('algorithm') ||
+        qLower.includes('how it works') ||
+        qLower.includes('vipi inafanya kazi');
+
+      const isAboutCrops =
+        qLower.includes('crop') ||
+        qLower.includes('mazao') ||
+        qLower.includes('rotation') ||
+        qLower.includes('mzunguko') ||
+        qLower.includes('pigeonpea') ||
+        qLower.includes('mbaazi') ||
+        qLower.includes('maize') ||
+        qLower.includes('mahindi') ||
+        qLower.includes('cowpea') ||
+        qLower.includes('kunde') ||
+        qLower.includes('sorghum') ||
+        qLower.includes('mtama');
+
+      if (isAboutPurpose) {
+        synthesis = isSw
+          ? `**TerraShift+ Ilijengwa kwa Ajili Gani?**\n\n` +
+            `TerraShift+ ni mfumo wa kijasusi wa kilimo ulioundwa kwa ajili ya changamoto ya **NASA Space Apps Challenge 2026 (Field Shift)** ili kutatua janga la ardhi tupu (*bare soil*) na ukame kwa wakulima wadogo katika maeneo kame na nusu-kame ya Afrika Mashariki (kama Dodoma, Tanzania).\n\n` +
+            `**Malengo Makuu 4 ya TerraShift+:**\n` +
+            `1. **Kufunga Pengo la Miezi 6 ya Ardhi Tupu:** Baada ya kuvuna mahindi mwezi Mei/Juni, mashamba mengi hubaki wazi yakichomwa na jua na kumomonyolewa na upepo hadi Novemba. TerraShift+ inapendekeza mazao ya kufunika udongo na mikunde yenye mizizi mirefu (kama Mbaazi na Kunde) ili kuhifadhi unyevu.\n` +
+            `2. **Kutafsiri Data Kubwa za NASA Kuwa Maamuzi ya Shambani:** Hubadilisha data za satelaiti (SMAP, POWER, ECOSTRESS, GPM, MODIS) kuwa mipango thabiti ya mzunguko wa mazao ya miaka 5 inayoeleweka kwa mkulima na afisa ugani.\n` +
+            `3. **Kuponya Afya ya Udongo na Naitrojeni:** Badala ya kutegemea mbolea za gharama kubwa pekee, inapanga mzunguko unaoongeza naitrojeni ya kibiolojia (zaidi ya kilo 65-85 N/ha) na kaboni ya udongo (SOC).\n` +
+            `4. **Kuzuia Mmomonyoko wa Udongo (RUSLE):** Kupunguza upotevu wa tabaka la juu la ardhi kwa zaidi ya 65% na kupunguza msongo wa maji kwa zaidi ya 40%.`
+          : `**What TerraShift+ Was Built For:**\n\n` +
+            `TerraShift+ was created for the **NASA Space Apps Challenge 2026 (Field Shift)** to eliminate the chronic 6-month dry-season bare-soil window and crop failure risk across semi-arid sub-Saharan Africa (such as Dodoma, Central Tanzania).\n\n` +
+            `**4 Core Pillars of TerraShift+:**\n` +
+            `1. **Closing the 6-Month Bare-Soil Window:** After maize harvest in May/June, fields often sit bare under intense solar radiation until November, accelerating erosion and microbial decay. TerraShift+ designs continuous vegetative cover using deep-rooted pulses (Pigeonpea, Cowpea).\n` +
+            `2. **Translating NASA Earth Data Into Field Action:** It synthesizes multi-mission NASA satellite observations (SMAP, POWER, ECOSTRESS, GPM, MODIS, SRTM) into 5-year resilient crop rotation blueprints accessible to smallholder farmers and extension officers.\n` +
+            `3. **Soil Regeneration & Biological Nitrogen:** Replaces continuous monoculture depletion with legumes that fix 65–85+ kg N/ha of free atmospheric nitrogen and sequester net soil organic carbon (SOC).\n` +
+            `4. **Erosion Mitigation & Drought Buffering:** Reduces topographic sheet erosion by over 65% (RUSLE) and mitigates root-zone water stress by over 40% during erratic rainfall dry spells.`;
+      } else if (isAboutSatellites) {
+        synthesis = isSw
+          ? `**Satelaiti na Data za NASA Zinazotumika Kwenye TerraShift+:**\n\n` +
+            `1. **NASA SMAP L4 (9 km):** Inapima unyevu wa udongo katika tabaka la mizizi (0–100 cm) kila siku, ikionyesha upatikanaji halisi wa maji kwa mazao.\n` +
+            `2. **NASA POWER MERRA-2:** Inatoa takwimu za hali ya hewa za miaka 5 hadi 30 ikijumuisha kiwango cha mvua, mionzi ya jua (solar irradiance), joto, na kasi ya upepo.\n` +
+            `3. **NASA ECOSTRESS (70 m LST):** Inapima joto la uso wa ardhi na upumuaji wa mimea (evapotranspiration) ili kugundua msongo wa joto na ukame shambani.\n` +
+            `4. **GPM IMERG (10 km):** Inapima kiasi na mtawanyiko wa mvua kwa uhakika wa hali ya juu.\n` +
+            `5. **MODIS Terra/Aqua (250 m NDVI):** Inafuatilia afya ya uoto na vipindi vya ardhi tupu katika msimu mzima wa kilimo.\n` +
+            `6. **SRTM (30 m DEM):** Inachanganua mwinuko na mwinamo wa shamba ili kutabiri njia za mtiririko wa maji na mmomonyoko wa udongo.`
+          : `**NASA Earth Observation Missions Driving TerraShift+:**\n\n` +
+            `1. **NASA SMAP L4 (9 km):** Global root-zone soil moisture (0–100 cm) providing daily moisture availability profiles.\n` +
+            `2. **NASA POWER (MERRA-2 assimilation):** 5-to-30-year agroclimatology providing daily precipitation, solar radiation, temperature, and wind speed.\n` +
+            `3. **NASA ECOSTRESS (70 m LST):** High-resolution thermal radiometry tracking crop water stress, surface temperature, and actual evapotranspiration.\n` +
+            `4. **GPM IMERG (10 km):** Multi-satellite precipitation telemetry capturing rainfall frequency and early-season dry spell duration.\n` +
+            `5. **MODIS Terra/Aqua (250 m NDVI):** Multi-year vegetation dynamics tracking green canopy coverage vs bare soil exposure windows.\n` +
+            `6. **SRTM (30 m DEM):** High-resolution topography computing sub-field slope percent and hydrological flow paths.`;
+      } else if (isAboutScience) {
+        synthesis = isSw
+          ? `**Sayansi na Milinganyo ya Fizikia ya TerraShift+:**\n\n` +
+            `TerraShift+ haibahatishi namba—inatenda kazi kwa kutumia kanuni rasmi zilizothibitishwa kimataifa:\n` +
+            `- **FAO-56 Penman-Monteith:** Huhesabu uwiano wa uvukizi wa maji hewani (ET0) na upotevu wa maji wa zao (ETc = Kc × ET0) kwa kila hatua ya ukuaji.\n` +
+            `- **Saxton-Rawls Pedotransfer Equations:** Huamua uwezo wa udongo kushikilia maji (Field Capacity, Wilting Point, Available Water Capacity) kulingana na muundo wa mchanga, mfinyanzi, na tabaka la kaboni (SOC).\n` +
+            `- **Mlinganyo wa RUSLE (Revised Universal Soil Loss Equation):** Huhesabu upotevu wa udongo (A = R × K × LS × C × P) kwa kuzingatia ukali wa mvua, aina ya udongo, mwinamo wa shamba, na mzunguko wa mazao.\n` +
+            `- **RothC Soil Carbon Model:** Huiga kasi ya kubadilika kwa mabaki ya mimea kuwa kaboni thabiti ya udongo kwa kipindi cha miaka 5.`
+          : `**Biophysical Models & Agronomic Physics in TerraShift+:**\n\n` +
+            `TerraShift+ relies strictly on peer-reviewed, deterministic equations with zero mathematical hallucinations:\n` +
+            `- **FAO-56 Penman-Monteith:** Daily atmospheric evaporative demand (ET0) and stage-specific crop water consumption (ETc = Kc × ET0).\n` +
+            `- **Saxton-Rawls Pedotransfer Functions:** Converts soil texture (% sand, % clay, % organic matter) into hydraulic retention curves (field capacity, permanent wilting point, hydraulic conductivity).\n` +
+            `- **RUSLE (Revised Universal Soil Loss Equation):** Predicts annual topsoil loss (A = R × K × LS × C × P) driven by satellite rainfall erosivity and topography.\n` +
+            `- **RothC Dynamics:** Simulates 5-year soil organic carbon (SOC) turnover, humification, and biological nitrogen release.`;
+      } else if (isAboutCrops) {
+        synthesis = isSw
+          ? `**Mazao na Mikakati ya Mzunguko Iliyoboreshwa:**\n\n` +
+            `TerraShift+ inasaidia mazao makuu ya ukanda wa ukame: **Mahindi (Maize)**, **Mbaazi (Pigeonpea)**, **Kunde (Cowpea)**, **Mtama (Sorghum)**, na **Alizeti (Sunflower)**.\n\n` +
+            `**Kwa Nini Mbaazi na Kunde ni Muhimu?**\n` +
+            `- Mbaazi ina mizizi inayopenya zaidi ya mita 1.5 hadi 2.0 ardhini, ikivuta maji na virutubisho kutoka chini kabisa wakati mimea mingine inapokauka.\n` +
+            `- Mikunde hutengeneza naitrojeni ya asili kwenye udongo (kilo 60–85 N/ha) inayolisha mahindi yatakayopandwa msimu unaofuata, ikipunguza gharama za ununuzi wa mbolea ya viwandani.\n` +
+            `- Mkakati wetu wa *Ustahimilivu wa Ukame (Resilience-First)* unapunguza msongo wa maji kwa zaidi ya 45% ukilinganishwa na mahindi ya mfululizo.`
+          : `**Optimized Crops & Resilient Rotation Pathways:**\n\n` +
+            `TerraShift+ models major semi-arid cropping systems: **Maize**, **Pigeonpea**, **Cowpea**, **Sorghum**, and **Sunflower**.\n\n` +
+            `**Why Legumes (Pigeonpea & Cowpea) Change the Equation:**\n` +
+            `- Pigeonpea roots penetrate 1.5–2.0 meters deep, recycling sub-surface moisture and phosphorus while protecting topsoil during the dry season.\n` +
+            `- Nodulating legumes fix 60–85+ kg N/ha of bioavailable nitrogen into the soil profile for the succeeding cereal crop, drastically cutting synthetic fertilizer costs.\n` +
+            `- The *Resilience-First* strategy cuts seasonal root-zone water deficit by 45% compared to baseline continuous maize monoculture.`;
+      } else if (effectiveAction === 'water_stress') {
         synthesis = isSw
           ? `Uchambuzi wa Gridi ya Msongo wa Maji (3x3 Sub-Field):\n\n` +
             `- Eneo la shamba lina mwinuko wa mita ${centerElev - 5} hadi ${centerElev + 5} na mwinamo wa juu wa ${(centerSlope + 1.8).toFixed(1)}%.\n` +

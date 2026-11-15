@@ -708,11 +708,6 @@ export default function FieldAdvisorFAB({
                   <h3 className="text-xs font-mono font-bold text-[#1C231F] uppercase tracking-wide">
                     {t('advisor.header_title')}
                   </h3>
-                  {detectedLang && (
-                    <span className="px-1.5 py-0.2 bg-[#EAF3ED] text-[#265D3D] border border-[#B8D8C3] text-[9px] font-mono rounded-xs">
-                      {detectedLang === 'sw' ? t('advisor.badge_detected_sw') : t('advisor.badge_detected_en')}
-                    </span>
-                  )}
                 </div>
                 <p className="text-[10px] font-mono text-[#767E78]">
                   {placeLabel || `${latStr}, ${lonStr}`}
