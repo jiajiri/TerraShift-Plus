@@ -737,6 +737,9 @@ def generate_pdf():
         temp_html = f.name
 
     try:
+        if DOCS_PDF.exists():
+            DOCS_PDF.unlink()
+
         cmd = [
             "chromium-browser",
             "--headless",
@@ -748,9 +751,12 @@ def generate_pdf():
             temp_html
         ]
         proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        for _ in range(12):
+        # Give chromium up to 15 seconds to finish writing the full multi-page PDF
+        for _ in range(30):
             time.sleep(0.5)
-            if DOCS_PDF.exists() and os.path.getsize(DOCS_PDF) > 50000:
+            if DOCS_PDF.exists() and os.path.getsize(DOCS_PDF) > 100000:
+                # Give an extra half second to flush completely
+                time.sleep(0.5)
                 break
         try:
             proc.terminate()
@@ -758,10 +764,13 @@ def generate_pdf():
         except Exception:
             proc.kill()
         
-        # Copy to frontend public
+        # Copy to frontend public and dist
         subprocess.run(["cp", str(DOCS_PDF), str(PUBLIC_PDF)], check=True)
+        dist_pdf = REPO_ROOT / "frontend" / "dist" / "TerraShift-Demo-7Slides.pdf"
+        if dist_pdf.parent.exists():
+            subprocess.run(["cp", str(DOCS_PDF), str(dist_pdf)], check=True)
         print(f"Successfully generated: {DOCS_PDF} ({os.path.getsize(DOCS_PDF)} bytes)")
-        print(f"Copied to: {PUBLIC_PDF}")
+        print(f"Copied to: {PUBLIC_PDF} and {dist_pdf}")
     finally:
         if os.path.exists(temp_html):
             os.remove(temp_html)
