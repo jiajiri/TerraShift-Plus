@@ -58,6 +58,51 @@ export default function App() {
     fetchBackendCrops()
       .then((list) => setCrops(list))
       .catch((err) => setStreamError(err.message));
+
+    // Instant Edge Geo-IP detection on initial mount
+    let isCancelled = false;
+    async function detectUserLocation() {
+      try {
+        const res = await fetch('/api/v1/geoip');
+        if (res.ok && !isCancelled) {
+          const geo = await res.json();
+          if (geo?.latitude && geo?.longitude) {
+            const detectedLat = Number(geo.latitude.toFixed(5));
+            const detectedLon = Number(geo.longitude.toFixed(5));
+            setCoords({ lat: detectedLat, lon: detectedLon });
+            if (geo.label) setPlaceLabel(geo.label);
+          }
+        }
+      } catch (err) {
+        console.warn('[TerraShift+ GeoIP] Edge detection skipped:', err);
+      }
+
+      // If geolocation permission was already granted by user, silently refine
+      try {
+        if (navigator.permissions && navigator.geolocation) {
+          const status = await navigator.permissions.query({ name: 'geolocation' });
+          if (status.state === 'granted' && !isCancelled) {
+            navigator.geolocation.getCurrentPosition(
+              (pos) => {
+                if (!isCancelled && pos.coords) {
+                  const fineLat = Number(pos.coords.latitude.toFixed(5));
+                  const fineLon = Number(pos.coords.longitude.toFixed(5));
+                  setCoords({ lat: fineLat, lon: fineLon });
+                  setPlaceLabel(`Local Farm (${fineLat}, ${fineLon})`);
+                }
+              },
+              () => {},
+              { timeout: 5000, maximumAge: 60000 }
+            );
+          }
+        }
+      } catch {}
+    }
+
+    detectUserLocation();
+    return () => {
+      isCancelled = true;
+    };
   }, []);
 
   const runLiveStream = useCallback(async (lat, lon) => {

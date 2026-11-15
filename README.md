@@ -4,7 +4,7 @@
 **NASA Space Apps Challenge 2026** | Challenge: *Field Shift: Adapting Farms with NASA Data*  
 **Track:** Climate-Smart Agriculture, Space Telemetry & Generative AI Systems  
 **Organization:** [Jiajiri](https://github.com/jiajiri)  
-**Repository:** [https://github.com/jiajiri/TerraShift-Plus](https://github.com/jiajiri/TerraShift-Plus)  
+**Repository:** [https://github.com/jiajiri/TerraShift](https://github.com/jiajiri/TerraShift)  
 **Team:** Lazaro A. Philemon (Tanzania), Jackson Haruni (Tanzania), Arnold Philemon (Kenya)
 
 ---

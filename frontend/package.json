@@ -5,12 +5,12 @@
   "description": "TerraShift+ - Closed-Loop NASA Earth Observation Decision Support & Physics-Informed Machine Learning Crop Rotation Engine",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/jiajiri/TerraShift-Plus.git"
+    "url": "git+https://github.com/jiajiri/TerraShift.git"
   },
-  "homepage": "https://github.com/jiajiri/TerraShift-Plus#readme",
   "bugs": {
-    "url": "https://github.com/jiajiri/TerraShift-Plus/issues"
+    "url": "https://github.com/jiajiri/TerraShift/issues"
   },
+  "homepage": "https://github.com/jiajiri/TerraShift#readme",
   "type": "module",
   "scripts": {
     "dev": "vite",

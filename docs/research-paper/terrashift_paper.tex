@@ -1,5 +1,5 @@
 \documentclass[10pt,twocolumn]{article}
-\usepackage[letterpaper,top=0.75in,bottom=0.8in,left=0.7in,right=0.7in,columnsep=0.22in]{geometry}
+\usepackage[letterpaper,top=0.8in,bottom=0.85in,left=0.75in,right=0.75in,columnsep=0.25in]{geometry}
 \usepackage{lmodern}
 \usepackage{microtype}
 \usepackage{amsmath,amssymb}
@@ -15,13 +15,13 @@
 \title{\textbf{\Large TerraShift+: A Physics-Informed Machine Learning and Multi-Mission NASA Earth Observation Pipeline for Climate-Resilient Crop Rotation Optimization}}
 
 \author{
-  \textbf{TerraShift+ Project Team} \\
+  \textbf{Lazaro A. Philemon}$^{1}$ \quad \textbf{Jackson Haruni}$^{1}$ \quad \textbf{Arnold Philemon}$^{2}$ \\
+  $^{1}$\textit{Tanzania} \quad $^{2}$\textit{Kenya} \\
   \textit{Jiajiri Organization --- Agronomy, Remote Sensing \& Systems Engineering Collective} \\
-  Dar es Salaam, Tanzania $\bullet$ Global Agricultural Modeling \& Environmental Intelligence Division \\
-  \href{https://github.com/jiajiri/TerraShift-Plus}{\texttt{https://github.com/jiajiri/TerraShift-Plus}}
+  \href{https://github.com/jiajiri/TerraShift}{\texttt{https://github.com/jiajiri/TerraShift}}
 }
 
-\date{\small NASA Space Apps Challenge 2026 Submission $\bullet$ Challenge: Field Shift: Adapting Farms with NASA Data $\bullet$ Published November 2026}
+\date{\small NASA Space Apps Challenge 2026 Submission $\bullet$ Challenge: Field Shift: Adapting Farms with NASA Data $\bullet$ November 2026}
 
 \begin{document}
 
@@ -29,7 +29,7 @@
 
 \begin{abstract}
 \noindent
-Smallholder and commercial agricultural production systems worldwide confront compound climate stressors: erratic monsoonal onsets, prolonged mid-season dry spells, extreme temperature surges, accelerated topsoil detachment, and catastrophic soil organic carbon (SOC) depletion. Traditional decision support systems rely upon static historical crop almanacs that fail under non-stationary climatic extremes, or alternatively, ungrounded black-box Large Language Models (LLMs) prone to agronomic hallucinations and mass-balance violations. In this paper, we present \textbf{TerraShift+}, an audited physics-informed machine learning (PIML) and closed-loop decision support engine that ingests ten distinct NASA Earth Observation (EO) satellite missions and global pedotransfer datasets. TerraShift+ couples empirical satellite telemetry with classical biophysical governing laws: FAO-56 Dual $K_c$ Penman-Monteith reference evapotranspiration ($ET_0$), Saxton-Rawls pedotransfer hydrology for available water capacity ($AWC$), dynamic root-zone water balance and Crop Water Stress Index ($WSI$), Growing Degree Days ($GDD$) and Killing Degree Days ($KDD$), the Revised Universal Soil Loss Equation (RUSLE), RothC-modeled carbon balance ($\Delta SOC$), and Log-Logistic Standardized Precipitation-Evapotranspiration Index (SPEI). Surrogate yield predictions are delivered via spatial-cross-validated Quantile Gradient Boosting Regressors ($P10/P50/P90$), guarded by a Gaussian Mixture Model (GMM) Mahalanobis Out-of-Distribution (OOD) distance metric. Optimal multi-year crop sequences are resolved across four distinct operational archetypes (Commercial Maximum Profit, Climate Adaptation \& Drought-Resilient, Soil Restorative \& Conservation, and Balanced Sustainable) using a multi-objective Pareto solver evaluating 100-draw Monte Carlo weather shocks and 10th-percentile Conditional Value at Risk ($\text{CVaR}_{10}$). Over 72 spatial clusters, the surrogate attains an RMSE of 0.050, an $R^2$ of 0.942 against FAO-56 Penman-Monteith, pinball losses of 0.009 ($P10$) and 0.008 ($P90$), and empirical 80\% coverage of 83.5\%. Stress-testing across canonical control stations (Dodoma, Tanzania; Fallon, Nevada; Ames, Iowa) and a polar negative control confirms strict monotonicity under drought shock ($-25\%$ precipitation, $+2.0^\circ\text{C}$ warming) and reliable OOD rejection (Mahalanobis distance 8.40). Server-Sent Event (SSE) streaming delivers full 5-year multi-objective optimizations in 1.50~ms (cached) and 585~ms (uncached cold start), providing smallholder farmers and extension officers with physically bounded, climate-resilient agronomic guidance.
+Smallholder and commercial agricultural production systems worldwide confront compound climate stressors: erratic monsoonal onsets, prolonged mid-season dry spells, extreme temperature surges, accelerated topsoil detachment, and catastrophic soil organic carbon (SOC) depletion. Traditional decision support systems rely upon static historical crop almanacs that fail under non-stationary climatic extremes, or alternatively, ungrounded black-box Large Language Models (LLMs) prone to agronomic hallucinations and mass-balance violations. In this paper, we present \textbf{TerraShift+}, an audited physics-informed machine learning (PIML) and closed-loop decision support engine that ingests ten distinct NASA Earth Observation (EO) satellite missions and global pedotransfer datasets. TerraShift+ couples empirical satellite telemetry with classical biophysical governing laws: FAO-56 Dual $K_c$ Penman-Monteith reference evapotranspiration ($ET_0$), Saxton-Rawls pedotransfer hydrology for available water capacity ($AWC$), dynamic root-zone water balance and Crop Water Stress Index ($WSI$), Growing Degree Days ($GDD$) and Killing Degree Days ($KDD$), the Revised Universal Soil Loss Equation (RUSLE), RothC-modeled carbon balance ($\Delta SOC$), and Log-Logistic Standardized Precipitation-Evapotranspiration Index (SPEI). Surrogate yield predictions are delivered via spatial-cross-validated Quantile Gradient Boosting Regressors ($P10/P50/P90$), guarded by a Gaussian Mixture Model (GMM) Mahalanobis Out-of-Distribution (OOD) distance metric. Optimal multi-year crop sequences are resolved across four distinct operational archetypes (Commercial Maximum Profit, Climate Adaptation \& Drought-Resilient, Soil Restorative \& Conservation, and Balanced Sustainable) using a multi-objective Pareto solver evaluating 100-draw Monte Carlo weather shocks and 10th-percentile Conditional Value at Risk ($\text{CVaR}_{10}$). Over 72 spatial clusters, the surrogate attains an RMSE of 0.050, an $R^2$ of 0.942 against FAO-56 Penman-Monteith, pinball losses of 0.009 ($P10$) and 0.008 ($P90$), and empirical 80\% coverage of 83.5\%. Stress-testing across canonical control stations (Dodoma, Tanzania; Fallon, Nevada; Ames, Iowa) and a polar negative control confirms strict monotonicity under drought shock ($-25\%$ precipitation, $+2.0^\circ\text{C}$ warming) and reliable OOD rejection ($D_M = 8.40$). Server-Sent Event (SSE) streaming delivers full 5-year multi-objective optimizations in 1.50~ms (cached) and 585~ms (uncached cold start), providing smallholder farmers and extension officers with physically bounded, climate-resilient agronomic guidance.
 \end{abstract}
 
 \noindent\textbf{Keywords:} crop rotation, NASA POWER, SMAP L3/L4, GPM IMERG, MODIS, ECOSTRESS, FAO-56 Penman-Monteith, Saxton-Rawls pedotransfer, RUSLE, quantile regression, CVaR, Out-of-Distribution detection, physics-informed machine learning, agricultural decision support systems.
@@ -43,59 +43,56 @@ A primary accelerator of agricultural collapse during these erratic climate shoc
 
 Under the physics of the Revised Universal Soil Loss Equation (RUSLE), the lack of surface vegetative cover ($C$-factor approaching unity) exposes fertile topsoil to kinetic erosion rates exceeding 10 to 25 metric tons per hectare annually on modest slope gradients. Concurrently, unbroken monocropping of nitrogen-exhaustive cereals (e.g., continuous maize or grain sorghum) rapidly depletes root-zone organic matter and macro-nutrients, necessitating escalating applications of costly synthetic fertilizers. For smallholder households operating on narrow margins, this creates a vulnerability cycle of soil depletion and crop failure: rising input costs paired with climate-induced harvest failures precipitate acute rural debt cycles and chronic food insecurity.
 
-\subsection{System Overview \& Architecture}
+\subsection{Closed-Loop System Overview \& Architecture}
 To overcome the structural failures of static historical almanacs and unconstrained generative AI models, we introduce \textbf{TerraShift+}, an audited, closed-loop decision support engine that operationalizes planetary-scale NASA Earth observations through physics-informed machine learning (PIML).
 
-The architecture couples a Python 3.14 computational core with a React 18 + Vite visual cockpit. In place of opaque deep learning pipelines, TerraShift+ embeds physical conservation laws directly into its feature transformations, surrogate regression models, and sequence optimization algorithms:
+The architecture couples a Python 3.14 computational core with a React 18 + Vite visual cockpit deployed serverlessly on Cloudflare Pages. In place of opaque deep learning pipelines, TerraShift+ embeds physical conservation laws directly into its feature transformations, surrogate regression models, and sequence optimization algorithms:
 
 \begin{enumerate}[leftmargin=*]
   \item \textbf{NASA Multi-Mission Ingestion Pipeline:} Programmatically assimilates near-real-time and multi-decadal observations across ten remote sensing and pedological assets, including NASA POWER v2.0 daily agroclimatology, SMAP L4 root-zone soil wetness, ECOSTRESS thermal Land Surface Temperature (LST), GPM IMERG calibrated precipitation, MODIS MOD13Q1 vegetative indices, GEDI L4A aboveground biomass, and ISRIC/iSDAsoil 30m--250m profiles.
   \item \textbf{Audited Biophysical Agronomy Engine:} Replaces empirical heuristics with explicit governing equations: FAO-56 Dual $K_c$ Penman-Monteith evapotranspiration, Saxton-Rawls pedotransfer hydrology, finite-depth root-zone bucket water balance, phenological Growing/Killing Degree Days, RUSLE soil detachment, and RothC turnover kinetics.
   \item \textbf{Quantile Regression ML Surrogate:} Employs spatial-cross-validated Quantile Gradient Boosting Regressors to predict 5-year yields across calibrated uncertainty bounds ($P10, P50, P90$), providing risk-averse farmers with transparent downside protections.
-  \item \textbf{GMM Mahalanobis Out-of-Distribution Guardrail:} Evaluates input feature vectors against a 72-cluster Gaussian Mixture Model to identify and gracefully reject biophysically impossible or out-of-domain agroclimatic queries.
+  \item \textbf{GMM Mahalanobis Out-of-Distribution Guardrail:} Evaluates input feature vectors against a 72-cluster Gaussian Mixture Model to identify and gracefully reject biophysically impossible or out-of-domain agroclimatic queries ($D_M(\mathbf{x}) > 5.0$).
   \item \textbf{Stochastic Multi-Objective Pareto Optimizer:} Simulates multi-year crop sequences under 100-draw Monte Carlo weather shocks, balancing economic margins, drought resilience ($\text{CVaR}_{10}$), and soil organic carbon accumulation across four actionable archetypes.
   \item \textbf{Agentic Model Context Protocol (MCP) Copilot:} Deploys five structured MCP tools streaming deterministic telemetry, live NASA Earthdata CMR granules, sub-field 3x3 DEM micro-topography grids, and external verification links without LLM math hallucination.
 \end{enumerate}
 
-\subsection{Research Objectives}
-This work systematically establishes and validates the operational capabilities of TerraShift+ across seven core scientific objectives:
-\begin{itemize}[leftmargin=*]
-  \item \textbf{Objective 1:} Harmonize ten distinct NASA and global pedological datasets into a unified spatial-temporal feature tensor across diverse global agroecological zones.
-  \item \textbf{Objective 2:} Formulate and solve closed-form biophysical governing equations ensuring strict mass and water balance conservation at field scales.
-  \item \textbf{Objective 3:} Train and validate calibrated quantile surrogate models predicting crop yield and water stress across spatial clusters without overfitting.
-  \item \textbf{Objective 4:} Construct an Out-of-Distribution rejection guardrail safeguarding surrogate inference against anomalous, non-agricultural, or geographically invalid queries.
-  \item \textbf{Objective 5:} Optimize 5-year crop rotation schedules over multi-objective Pareto frontiers under simulated drought shocks.
-  \item \textbf{Objective 6:} Verify physical monotonicity, economic stability, and erosion suppression across canonical global benchmark stations.
-  \item \textbf{Objective 7:} Achieve sub-millisecond cached and sub-second cold-start Server-Sent Event (SSE) streaming latency suitable for low-bandwidth rural deployments.
-\end{itemize}
-
-\section{Methods}
-
-\subsection{Multi-Mission NASA Data Ingestion}
-TerraShift+ integrates ten authoritative Earth observation and environmental data assets, detailed in Table~\ref{tab:nasa_datasets}. Telemetry is fetched via direct programmatic interfaces to NASA Earthdata, CMR search APIs, and ORNL DAAC web services.
+\subsection{Core Research Objectives}
+The core objectives guiding this investigation comprise:
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{Physical Grounding:} Eliminate black-box hallucinations by coupling machine learning regressors directly with classical conservation equations of energy, water, and mass balance.
+  \item \textbf{Uncertainty Quantification:} Formulate rotational optimization around worst-decile financial safety floors ($\text{CVaR}_{10}$) and asymmetric quantile spreads ($P10/P50/P90$) rather than fragile mean expectations.
+  \item \textbf{Multi-Mission Planetary Ingestion:} Establish a resilient, low-latency data assimilation pipeline operationalizing ten spaceborne NASA missions and pedological archives without mocked data.
+  \item \textbf{Global Validation \& OOD Guardrails:} Empirically benchmark algorithm performance across contrasting agroclimatic control stations (Dodoma, Fallon, Ames) while verifying Out-of-Distribution rejection against an extreme polar negative control.
+\end{enumerate}
 
 \begin{table*}[t]
 \centering
-\caption{Harmonized NASA Earth Observation and Environmental Datasets in TerraShift+}
-\label{tab:nasa_datasets}
+\caption{Multi-Mission Satellite Remote Sensing and Global Pedotransfer Ingestion Matrix}
+\label{tab:data_sources}
 \small
-\begin{tabularx}{\textwidth}{llllX}
+\begin{tabularx}{\textwidth}{lcp{3.2cm}p{3.5cm}X}
 \toprule
-\textbf{Mission / Sensor} & \textbf{Spatial Res.} & \textbf{Temporal Res.} & \textbf{Key Parameter} & \textbf{Agronomic Function in TerraShift+} \\
+\textbf{Mission / Archive} & \textbf{Spatial Res.} & \textbf{Temporal Res.} & \textbf{Ingested Parameters} & \textbf{Agronomic Governing Function} \\
 \midrule
-NASA POWER v2.0 & $0.5^\circ \times 0.5^\circ$ & Daily (1981--pres.) & $R_n, T_{2M}, WS_{2M}, RH_{2M}$ & FAO-56 Penman-Monteith $ET_0$, GDD/KDD, solar radiation budgets. \\
-NASA SMAP L4 & $9\text{ km gridded}$ & 3-hour / Daily & Root-zone wetness (`GWETROOT`) & Available water capacity initialization and root-zone water stress tracking. \\
-NASA ECOSTRESS & $70\text{ m thermal}$ & ISS Orbit & Land Surface Temp (LST) & Canopy thermal stress detection, microclimate micro-topography anomalies. \\
-NASA GPM IMERG & $0.1^\circ \times 0.1^\circ$ & 30-min / Daily & Calibrated precipitation ($P$) & Rainfall erosivity ($R$-factor) and crop water deficit accumulation ($P - ET_0$). \\
-NASA MODIS MOD13Q1 & $250\text{ m gridded}$ & 16-day composite & NDVI / EVI Vegetation Indices & Detection of bare-soil exposure windows ($\text{NDVI} < 0.25$) and canopy dynamics. \\
-NASA GEDI L4A & Footprint & Monthly / Orbit & Aboveground Biomass Density & Baseline vegetative carbon stock estimation and agroforestry carbon modeling. \\
-NASA GRACE-FO & Regional & Monthly & Terrestrial Water Storage ($\Delta\text{TWS}$) & Macro-catchment aquifer depletion and groundwater drought severity indexing. \\
-iSDAsoil & $30\text{ m Africa}$ & Static Profile & Sand, Silt, Clay, SOC, pH & Saxton-Rawls pedotransfer calculation for African smallholder parcels. \\
-ISRIC SoilGrids 2.0 & $250\text{ m Global}$ & Static Profile & Sand, Silt, Clay, SOC, pH & Global Saxton-Rawls pedotransfer and RUSLE soil erodibility ($K$-factor). \\
-Copernicus GLO-90 DEM & $30\text{ m--}90\text{ m}$ & Static Elevation & Elevation ($m$) and Slope (\%) & Micro-topographic drainage stencil, RUSLE $LS$-factor, frost-pocket detection. \\
+NASA POWER v2.0 (MERRA-2) & $0.5^\circ \times 0.625^\circ$ & Daily (1981--Pres.) & $R_s$, $T_{\min}$, $T_{\max}$, $u_2$, $RH$, $P$ & FAO-56 Penman-Monteith combination evapotranspiration ($ET_0$) \\
+NASA SMAP L4 (SPL4SMGP) & $9\text{ km}$ & 3-Hourly & Surface/Root Wetness ($0$--$100\text{ cm}$) & Root-zone soil bucket water balance and empirical deficit index ($WSI$) \\
+NASA GPM IMERG (V07B) & $0.1^\circ \times 0.1^\circ$ & Daily & Calibrated Precipitation Flux & Kinetic rainfall erosivity factor ($R$) in RUSLE equation \\
+NASA MODIS Terra (MOD13Q1) & $250\text{ m}$ & 16-Day Composite & NDVI, EVI, Surface Reflectance & Dynamic vegetative canopy coverage and bare-field exposure detection \\
+NASA ECOSTRESS (L2/L4) & $70\text{ m}$ & 1--5 Days & Thermal LST, Evaporative Stress & High-resolution microclimatic thermal stress and canopy transpiration \\
+NASA GEDI (L4A) & $25\text{ m}$ footprint & Mission Orbit & Aboveground Biomass Density & Structural boundary windbreak and vegetative roughness calibration \\
+NASA GRACE-FO & $300\text{ km}$ & Monthly & Terrestrial Water Storage ($\Delta\text{TWS}$) & Deep aquifer groundwater depletion and regional hydraulic deficit \\
+ISRIC SoilGrids 2.0 & $250\text{ m}$ & Static / Decadal & Clay, Sand, Silt, pH, Organic Carbon & Saxton-Rawls pedotransfer hydrology ($AWC, \theta_{FC}, \theta_{WP}$) \\
+iSDAsoil v2 (African Basins) & $30\text{ m}$ & In-Situ Calibrated & Subsoil Texture, Micronutrients & Localized Sub-Saharan African soil parameterization and correction \\
+Open-Meteo SRTM / Copernicus & $90\text{ m}$ & Static & Elevation, Slope Gradient, Aspect & Sub-field 3x3 micro-topography DEM grid and RUSLE slope factor ($LS$) \\
 \bottomrule
 \end{tabularx}
 \end{table*}
+
+\section{Methods}
+
+\subsection{Multi-Mission Remote Sensing Ingestion}
+TerraShift+ establishes automated, authenticated connections across eight planetary-scale Earth observation archives. Table~\ref{tab:data_sources} details the satellite missions, spatial resolutions, temporal frequencies, and biophysical utilities.
 
 \subsection{Physics-Informed Agronomic Engine}
 
@@ -121,7 +118,7 @@ Soil hydraulic properties are derived directly from soil texture (sand and clay 
 \theta_{WP} &= \theta_{1500t} + 0.14 \theta_{1500t} - 0.02 \\
 \theta_{33t} &= -0.251 S + 0.195 C + 0.011 OM + 0.006 (S \times OM) \nonumber \\
 &\quad - 0.027 (C \times OM) + 0.452 (S \times C) + 0.299 \\
-\theta_{FC} &= \theta_{33t} + [1.283 (\theta_{33t})^2 - 0.374 \theta_{33t} - 0.015] \\
+\theta_{FC} &= \theta_{33t} + \left[1.283 (\theta_{33t})^2 - 0.374 \theta_{33t} - 0.015\right] \\
 AWC &= (\theta_{FC} - \theta_{WP}) \times Z_r
 \end{align}
 where $S$ is sand fraction, $C$ is clay fraction, $OM$ is organic matter fraction, $\theta_{FC}$ is volumetric water content at field capacity ($-33\text{ kPa}$), $\theta_{WP}$ is wilting point ($-1500\text{ kPa}$), and $Z_r$ is dynamic crop rooting depth ($mm$).
@@ -135,7 +132,7 @@ where $P_t$ is precipitation, $RO_t$ is surface runoff, $I_t$ is irrigation, $CR
 \begin{equation}
 WSI_t = 1.0 - \frac{ET_{c,\text{act},t}}{ET_{c,t}}
 \end{equation}
-Integrating $WSI_t$ over the growth cycle weighted by phenological stage sensitivity factors ($k_y$) yields the cumulative yield reduction penalty.
+Integrating $WSI_t$ over the growth cycle weighted by phenological stage sensitivity factors ($k_y$) yields cumulative yield reduction penalties.
 
 \subsubsection{Thermal Phenology: GDD and KDD}
 Vegetative development and heat injury are governed by thermal integration:
@@ -150,7 +147,7 @@ Mean annual soil loss $A$ ($\text{t}\cdot\text{ha}^{-1}\cdot\text{yr}^{-1}$) is 
 \begin{equation}
 A = R \times K \times LS \times C \times P
 \end{equation}
-where $R$ is rainfall erosivity calculated from GPM IMERG, $K$ is soil erodibility from ISRIC SoilGrids, $LS$ is the slope length and steepness factor computed from the DEM, $C$ is the cover-management factor dynamically assigned based on crop canopy coverage, and $P$ is the erosion control practice factor.
+where $R$ is rainfall erosivity calculated from GPM IMERG, $K$ is soil erodibility from ISRIC SoilGrids, $LS$ is the slope length and steepness factor computed from the DEM, $C$ is the cover-management factor dynamically assigned based on crop canopy coverage, and $P$ is the erosion control practice factor. Under bare fallow, $C \to 1.0$, producing severe soil detachment; under diversified cover cropping, $\mathrm{RUSLE}_{\mathrm{cover}} < \mathrm{RUSLE}_{\mathrm{bare}}$, cutting erosion rates by up to 65\%.
 
 \subsection{Machine Learning Surrogate \& Control Validation}
 
@@ -162,18 +159,18 @@ To deliver instantaneous rotational evaluations while bounding predictive uncert
 Three separate surrogate ensembles are trained for $\alpha \in \{0.10, 0.50, 0.90\}$, providing lower bound ($P10$), median expected ($P50$), and optimistic ($P90$) yield and gross margin estimates.
 
 \subsubsection{GMM Mahalanobis Out-of-Distribution Guardrail}
-To prevent ungrounded predictions when presented with non-agricultural or geographically corrupt queries, a 72-component Gaussian Mixture Model (GMM) is fitted over the global training feature manifold. The Mahalanobis distance $D_M(x)$ to the nearest cluster $k$:
+To prevent ungrounded predictions when presented with non-agricultural or geographically corrupt queries, a 72-component Gaussian Mixture Model (GMM) is fitted over the global training feature manifold. The Mahalanobis distance $D_M(\mathbf{x})$ to the nearest cluster $k$:
 \begin{equation}
-D_M(x) = \min_k \sqrt{(x - \mu_k)^T \Sigma_k^{-1} (x - \mu_k)}
+D_M(\mathbf{x}) = \min_k \sqrt{(\mathbf{x} - \mu_k)^T \Sigma_k^{-1} (\mathbf{x} - \mu_k)}
 \end{equation}
-If $D_M(x) > \tau_{\text{OOD}} = 5.0$, the input is flagged as Out-of-Distribution, preventing black-box extrapolation and triggering deterministic physical fallback diagnostics.
+If $D_M(\mathbf{x}) > \tau_{\text{OOD}} = 5.0$, the input is flagged as Out-of-Distribution, preventing black-box extrapolation and triggering deterministic physical fallback diagnostics.
 
 \subsection{Stochastic Multi-Objective Pareto Optimizer}
 The rotation planner evaluates all permissible 5-year crop sequences $\mathbf{s} = (c_1, c_2, \dots, c_5)$ across a candidate crop library $\mathcal{C}$. To enforce rotational agronomy:
 \begin{equation}
 c_{t} \neq c_{t-1} \quad \forall t \in \{2,\dots,5\} \quad \text{if } c_{t} \in \mathcal{C}_{\text{depleting}}
 \end{equation}
-Leguminous species ($c \in \mathcal{C}_{\text{legume}}$) contribute a physical nitrogen credit ($\Delta N = +45\text{ kg}\cdot\text{ha}^{-1}$) that reduces synthetic fertilizer requirements for the subsequent crop cycle.
+Continuous monoculture produces an acute nitrogen penalty ($\mathrm{Net}\,N_{\mathrm{mono}} < 0$). In contrast, leguminous species ($c \in \mathcal{C}_{\text{legume}}$) contribute a biological nitrogen credit ($\Delta N = +45\text{ kg}\cdot\text{ha}^{-1}$) that reduces synthetic fertilizer requirements for the subsequent crop cycle.
 
 Multi-objective fitness evaluates three competing dimensions under $N=100$ Monte Carlo climate shock draws:
 \begin{align}
@@ -183,7 +180,7 @@ f_3(\mathbf{s}) &= \sum_{t=1}^5 \left( \Delta SOC(c_t) - \frac{A(c_t)}{20} \righ
 \end{align}
 The solver constructs the non-dominated Pareto frontier $\mathcal{P}^*$ and extracts four operational archetypes:
 \begin{itemize}[leftmargin=*]
-  \item \textbf{High-Yield Commercial:} Maximizes $f_1(\mathbf{s})$ subject to $WSI \le 0.45$.
+  \item \textbf{Commercial Maximum Profit:} Maximizes $f_1(\mathbf{s})$ subject to $WSI \le 0.45$.
   \item \textbf{Climate Adaptation \& Drought-Resilient:} Maximizes $f_2(\mathbf{s})$ ($\text{CVaR}_{10}$) under acute water deficit conditions.
   \item \textbf{Soil Restorative \& Conservation:} Maximizes $f_3(\mathbf{s})$ to enhance topsoil organic matter and minimize RUSLE detachment.
   \item \textbf{Balanced Sustainable:} Computes the centroid compromise vector across the Pareto front.
@@ -204,7 +201,7 @@ TerraShift+ includes an agentic copilot executing five Model Context Protocol (M
 \subsection{Spatial Cross-Validation Performance}
 The quantile regression surrogate models were validated using 10-fold Spatial Block Cross-Validation across 72 global agricultural clusters to prevent spatial autocorrelation leakage. Performance metrics are reported in Table~\ref{tab:surrogate_performance}.
 
-\begin{table}[h]
+\begin{table}[htbp]
 \centering
 \caption{Spatial Cross-Validation Performance Across 72 Agroecological Clusters}
 \label{tab:surrogate_performance}
@@ -262,7 +259,7 @@ RUSLE Soil Loss Reduction & $-64.5\%$ & $-58.2\%$ & $-42.0\%$ & N/A \\
 \subsection{Drought Shock Monotonicity Stress-Testing}
 To verify thermodynamic and biological consistency, the optimizer was subjected to synthetic climate stress tests at Dodoma, Tanzania, progressively degrading annual precipitation by $-25\%$ while elevating daily mean temperatures by $+2.0^\circ\text{C}$.
 
-\begin{table}[h]
+\begin{table}[htbp]
 \centering
 \caption{Monotonicity Response Under Simulated Drought Shocks (Dodoma)}
 \label{tab:drought_shock}
@@ -302,7 +299,7 @@ Climate Non-Stationarity & Complete failure under extremes & Plausible prose, un
 Mass / Water Conservation & Ignored & Frequently violated ($WSI < 0$ or $>1$) & Strictly bounded via FAO-56 \& Saxton-Rawls \\
 Multi-Objective Optimization & Single-crop heuristics & Unranked text suggestions & Formal 4-archetype Pareto frontier \\
 Uncertainty Quantification & None & None (deterministic hallucinations) & Quantile regression ($P10/P50/P90$) and $\text{CVaR}_{10}$ \\
-Out-of-Distribution Safety & None & High hallucination risk in novel domains & GMM Mahalanobis distance rejection \\
+Out-of-Distribution Safety & None & High hallucination risk in novel domains & GMM Mahalanobis distance rejection ($D_M > 5.0$) \\
 Bilingual African Dialects & English / Colonial only & Generic Swahili without agro-lexicon & Verified Tanzanian Swahili (`sw-TZ`) \\
 Telemetry Provenance & None & Uncited or fictional web links & Direct NASA Earthdata CMR \& Worldview DOIs \\
 \bottomrule
@@ -321,7 +318,7 @@ TerraShift+ establishes a robust, physics-informed remote sensing architecture t
 \section*{NASA Space Apps Challenge AI Provenance Disclosure}
 In compliance with NASA Space Apps Challenge guidelines: Large Language Models (Anthropic Claude, Google Gemini) were utilized within strictly bounded retrieval-augmented generation (RAG) guardrails. LLMs were prohibited from synthesizing quantitative yield, water stress, or financial metrics independently; all numerical outputs originated exclusively from deterministic biophysical equations and validated surrogate models. AI coding assistants were utilized for unit test generation and LaTeX formatting under active human engineering supervision.
 
-\begin{thebibliography}{14}
+\begin{thebibliography}{15}
 \small
 \bibitem{allen1998}
 R.~G. Allen, L.~S. Pereira, D.~Raes, and M.~Smith, ``Crop evapotranspiration: Guidelines for computing crop water requirements,'' \textit{FAO Irrigation and Drainage Paper 56}, Rome, Italy, 1998.
@@ -367,20 +364,50 @@ G.~E. Karniadakis et~al., ``Physics-informed machine learning,'' \textit{Nat. Re
 \end{thebibliography}
 
 \appendix
-\section{Mathematical Nomenclature}
-\small
+\section{Data Availability \& Verified Endpoints}
+All satellite datasets, REST endpoints, and model parameter files are publicly accessible without authentication barriers:
 \begin{itemize}[leftmargin=*]
-  \item $ET_0$: Reference evapotranspiration ($\text{mm}\cdot\text{day}^{-1}$)
-  \item $K_{cb}$: Basal crop transpiration coefficient (dimensionless)
-  \item $AWC$: Available water capacity ($\text{mm}\cdot\text{m}^{-1}$)
-  \item $WSI$: Crop water stress index, $1 - ET_{c,\text{act}} / ET_c \in [0, 1]$
-  \item $\text{CVaR}_{10}$: 10th-percentile Conditional Value at Risk ($\$\cdot\text{ha}^{-1}$)
-  \item $D_M$: Mahalanobis Out-of-Distribution distance metric
-  \item $R, K, LS, C, P$: RUSLE erosion governing parameters
+  \item NASA POWER: \url{https://power.larc.nasa.gov/api/temporal/daily/point}
+  \item NSIDC SMAP L4 DOI: \url{https://doi.org/10.5067/T5RUATAQREF8}
+  \item NASA Worldview: \url{https://worldview.earthdata.nasa.gov/}
+  \item ISRIC SoilGrids 2.0: \url{https://rest.isric.org/soilgrids/v2.0/}
+  \item Open-Meteo DEM 90m: \url{https://api.open-meteo.com/v1/elevation}
+  \item TerraShift+ Live App: \url{https://terrashift-plus.pages.dev}
+  \item Interactive Swagger Docs: \url{https://terrashift-plus.pages.dev/docs.html}
 \end{itemize}
 
-\section{GMM Covariance Parameters}
-\small
-The Out-of-Distribution detection manifold comprises 72 Gaussian components with full covariance matrices $\Sigma_k \in \mathbb{R}^{8 \times 8}$ fitted across 8 standardized features: mean annual temperature, diurnal temperature range, annual precipitation, rainfall seasonality (coefficient of variation), mean root wetness, soil clay fraction, topographic slope, and annual solar irradiance. Rejection threshold $\tau_{\text{OOD}} = 5.0$ guarantees empirical false positive rate $\le 1.2\%$ over global arable land.
+\section{System Requirements \& Edge Deployment}
+\subsection{Cloudflare Pages Edge Runtime (Production)}
+\begin{itemize}[leftmargin=*]
+  \item Runtime: Cloudflare Workers V8 JavaScript Engine
+  \item CPU Budget: $<10\text{ ms}$ per invocation
+  \item Memory Budget: $128\text{ MB}$
+  \item Cold-Start Latency: $<600\text{ ms}$ (including upstream NASA fetch)
+  \item In-Memory Cache Latency: $1.50\text{ ms}$ ($>660\text{ req/sec}$)
+\end{itemize}
+
+\subsection{Local Development Core}
+\begin{itemize}[leftmargin=*]
+  \item Python 3.11+ (FastAPI, NumPy, SciPy, scikit-learn, Pydantic)
+  \item Node.js 18+ (React 18, Vite, Tailwind CSS, Leaflet)
+\end{itemize}
+
+\section{Open-Source Software Dependencies}
+The platform builds exclusively on standard open-source libraries:
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Core Modeling:} \texttt{numpy} (v1.26.4), \texttt{scipy} (v1.12.0), \texttt{scikit-learn} (v1.4.1), \texttt{pandas} (v2.2.1)
+  \item \textbf{Web Engine:} \texttt{fastapi} (v0.110.0), \texttt{uvicorn} (v0.28.0), \texttt{pydantic} (v2.6.4)
+  \item \textbf{Frontend UI:} \texttt{react} (v18.3.1), \texttt{vite} (v6.4.6), \texttt{leaflet} (v1.9.4), \texttt{lucide-react} (v0.344.0)
+\end{itemize}
+
+\section{Numerical Reproducibility Checklist}
+\begin{itemize}[leftmargin=*]
+  \item Random seed fixed to $42$ across all Monte Carlo draws and Spatial Block Cross-Validation splits.
+  \item Standardized model weights exported to \texttt{functions/\_lib/model\_weights.json}.
+  \item Control station validation reproducible via: \\
+  \texttt{python backend/training/run\_paper\_validation.py}
+  \item Full test suite passes: \\
+  \texttt{pytest backend/tests/test\_nextgen\_chat.py}
+\end{itemize}
 
 \end{document}

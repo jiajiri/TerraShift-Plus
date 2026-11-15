@@ -35,10 +35,10 @@ LATEX_SOURCE = r"""\documentclass[10pt,twocolumn]{article}
 \title{\textbf{\Large TerraShift+: A Physics-Informed Machine Learning and Multi-Mission NASA Earth Observation Pipeline for Climate-Resilient Crop Rotation Optimization}}
 
 \author{
-  \textbf{TerraShift+ Project Team} \\
+  \textbf{Lazaro A. Philemon}$^{1}$ \quad \textbf{Jackson Haruni}$^{1}$ \quad \textbf{Arnold Philemon}$^{2}$ \\
+  $^{1}$\textit{Tanzania} \quad $^{2}$\textit{Kenya} \\
   \textit{Jiajiri Organization --- Agronomy, Remote Sensing \& Systems Engineering Collective} \\
-  Dar es Salaam, Tanzania $\bullet$ Global Agricultural Modeling \& Environmental Intelligence Division \\
-  \texttt{git@github.com:jiajiri/TerraShift.git}
+  \href{https://github.com/jiajiri/TerraShift}{\texttt{https://github.com/jiajiri/TerraShift}}
 }
 
 \date{\small NASA Space Apps Challenge 2026 Submission $\bullet$ Challenge: Field Shift: Adapting Farms with NASA Data $\bullet$ Published November 2026}

@@ -40,6 +40,35 @@
         }
       }
     },
+    "/api/v1/geoip": {
+      "get": {
+        "tags": ["System"],
+        "summary": "Edge Geo-IP detection",
+        "description": "Returns estimated geographical coordinates and regional label for the visitor using Cloudflare Edge metadata or fallback lookup.",
+        "responses": {
+          "200": {
+            "description": "Visitor coordinates and location label",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "latitude": { "type": "number", "example": -6.1630 },
+                    "longitude": { "type": "number", "example": 35.7516 },
+                    "city": { "type": "string", "example": "Dodoma" },
+                    "region": { "type": "string", "example": "Dodoma Region" },
+                    "country": { "type": "string", "example": "Tanzania" },
+                    "label": { "type": "string", "example": "Dodoma, Dodoma Region, Tanzania" },
+                    "source": { "type": "string", "example": "cloudflare-edge-cf" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/crops": {
       "get": {
         "tags": ["Agronomy"],
