@@ -372,7 +372,9 @@ export default function FieldAdvisorFAB({
       const elevMin = data.elev_min != null ? data.elev_min : (terrain?.elevation_m ? Math.round(terrain.elevation_m - 5) : 500);
       const elevMax = data.elev_max != null ? data.elev_max : (terrain?.elevation_m ? Math.round(terrain.elevation_m + 5) : 510);
       const maxSlope = data.max_slope != null ? data.max_slope : (terrain?.slope_pct ?? 3.2);
-      const meanWsi = data.mean_wsi != null ? Math.round(data.mean_wsi * 100) : 35;
+      const meanWsi = data.mean_wsi != null 
+        ? (Number(data.mean_wsi) > 1 ? Math.min(100, Math.round(Number(data.mean_wsi))) : Math.min(100, Math.round(Number(data.mean_wsi) * 100))) 
+        : 35;
 
       return (
         <div className="my-2.5 p-2.5 bg-white border border-[#DDD9CE] rounded-sm text-[10px] font-mono shadow-xs">
