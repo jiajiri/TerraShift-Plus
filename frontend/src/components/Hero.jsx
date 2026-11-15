@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { AlertTriangle, ShieldCheck, Droplets, Sprout, TrendingUp, Bug, X, ChevronRight } from 'lucide-react';
 import FarmerTooltip from './FarmerTooltip';
+import { useI18n } from '../i18n/I18nContext';
 
 function WaterBalanceNdviChart({ climate, ndvi }) {
+  const { t } = useI18n();
   const [hoverIdx, setHoverIdx] = useState(null);
   if (!climate?.monthly_climatology?.length) return null;
 
@@ -36,10 +38,10 @@ function WaterBalanceNdviChart({ climate, ndvi }) {
     <div>
       <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', marginBottom: 6, fontSize: 11, color: 'var(--ink-secondary)' }}>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          <span><FarmerTooltip termKey="rain_et0">Blue: Rainfall</FarmerTooltip></span>
-          <span><FarmerTooltip termKey="et0">Dashed: Crop Thirst (ET0)</FarmerTooltip></span>
-          <span>Green Line: Leaf Canopy (NDVI)</span>
-          <span><FarmerTooltip termKey="bare_field">Red: Uncovered Bare Soil</FarmerTooltip></span>
+          <span><FarmerTooltip termKey="rain_et0">{t('telemetry.legend_rain')}</FarmerTooltip></span>
+          <span><FarmerTooltip termKey="et0">{t('telemetry.legend_et0')}</FarmerTooltip></span>
+          <span>{t('telemetry.legend_ndvi')}</span>
+          <span><FarmerTooltip termKey="bare_field">{t('telemetry.legend_bare')}</FarmerTooltip></span>
         </div>
         {hovered && (
           <span className="font-mono-tabular" style={{ color: 'var(--ink-primary)' }}>
@@ -89,9 +91,33 @@ function WaterBalanceNdviChart({ climate, ndvi }) {
   );
 }
 
-export default function Hero({ streamLog = [], streaming, climate, ndvi, soil, terrain, optimization, onClose, onOpenProvenance }) {
+export default function Hero({ streamLog = [], streaming, climate, ndvi, soil, terrain, optimization, onClose }) {
+  const { t, lang } = useI18n();
   const diag = optimization?.field_diagnosis;
   const opps = optimization?.opportunities;
+
+  const renderBareSource = (source) => {
+    if (!source) return climate ? 'NASA POWER & MODIS CMR Telemetry' : t('advisor.analyzing');
+    if (source.includes('Precipitation Proxy')) {
+      return t('telemetry.precip_proxy');
+    }
+    return source;
+  };
+
+  const renderReason = (reason) => {
+    if (typeof reason !== 'string') return String(reason);
+    let out = reason;
+    if (out.includes('heat stress')) {
+      out = out.replace('heat stress', t('telemetry.stress_heat'));
+    }
+    if (out.includes('frost risk')) {
+      out = out.replace('frost risk', t('telemetry.stress_frost'));
+    }
+    if (out.includes('moisture deficit')) {
+      out = out.replace('moisture deficit (ET0 >> P)', t('telemetry.stress_moisture'));
+    }
+    return out;
+  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -100,13 +126,13 @@ export default function Hero({ streamLog = [], streaming, climate, ndvi, soil, t
         <div className="flex items-center justify-between pb-1 mb-1">
           <span className="text-xs font-mono font-bold text-[#234E36] uppercase tracking-wider flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-[#234E36] animate-pulse"></span>
-            Field Agronomic Telemetry &amp; Vulnerability
+            {t('map.field_analysis')}
           </span>
           <button
             onClick={onClose}
             className="flex items-center gap-1 px-2.5 py-1 text-xs font-mono bg-[#EFEDE6] hover:bg-[#DDD9CE] text-[#1C231F] border border-[#DDD9CE] rounded transition-colors"
           >
-            <span>CLOSE</span>
+            <span>{t('common.close').toUpperCase()}</span>
             <X size={13} />
           </button>
         </div>
@@ -116,36 +142,35 @@ export default function Hero({ streamLog = [], streaming, climate, ndvi, soil, t
       <section className="swiss-panel p-3">
         <div className="flex items-center justify-between pb-2 mb-2 border-b border-[#DDD9CE]">
           <h2 className="text-xs font-mono font-semibold uppercase tracking-wide text-[#1C231F]">
-            Field Vulnerability &amp; Bare-Soil Detection
+            {t('telemetry.water_balance_ndvi_title')}
           </h2>
-          {onOpenProvenance && (
-            <button
-              onClick={onOpenProvenance}
-              className="px-2 py-0.5 text-[10px] font-mono bg-[#234E36] text-white hover:bg-[#1A3B29] transition-colors rounded-xs"
-            >
-              PROVENANCE
-            </button>
-          )}
+
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, fontSize: 12 }}>
           <div style={{ padding: '8px 10px', background: 'var(--status-stress-bg)', border: '1px solid var(--status-stress-border)', borderRadius: 3 }}>
-            <strong><FarmerTooltip termKey="bare_field">Uncovered Ground Months</FarmerTooltip> ({diag?.bare_source ? diag.bare_source : (climate ? 'NASA POWER & MODIS CMR Telemetry' : 'Analyzing...') }):</strong>{' '}
-            {diag?.bare_months?.length ? diag.bare_months.join(', ') : 'No prolonged bare months detected (Soil is well protected)'}
+            <strong><FarmerTooltip termKey="bare_field">{t('telemetry.legend_bare')}</FarmerTooltip> ({renderBareSource(diag?.bare_source)}):</strong>{' '}
+            {diag?.bare_months?.length ? diag.bare_months.join(', ') : '0'}
           </div>
+
+          {diag?.bare_months && diag.bare_months.length > 0 && (
+            <div style={{ padding: '8px 10px', background: '#FBECE9', border: '1px solid #E3B3AC', borderRadius: 3, color: '#9E3426', fontSize: 11.5 }}>
+              {t('telemetry.bare_soil_alert', { count: diag.bare_months.length })}
+            </div>
+          )}
 
           <div style={{ padding: '8px 10px', background: 'var(--status-watch-bg)', border: '1px solid var(--status-watch-border)', borderRadius: 3 }}>
             <strong style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
               <AlertTriangle size={13} />
-              Current Crop Vulnerable Seasons:
+              {t('map.vulnerability')}
             </strong>{' '}
             {diag?.vulnerable_seasons?.length
-              ? diag.vulnerable_seasons.slice(0, 5).map((v) => `${v.month} (${v.reasons.join('; ')})`).join(' | ')
-              : (climate ? 'Optimal thermal & moisture balance across active vegetative cycle' : 'Waiting for seasonal stress analysis...')}
+              ? diag.vulnerable_seasons.slice(0, 5).map((v) => `${v.month} (${v.reasons.map(renderReason).join('; ')})`).join(' | ')
+              : (climate ? (lang === 'sw' ? 'Hakuna msongo wa joto au ukame katika mzunguko mzima wa mazao' : 'Optimal thermal & moisture balance across active vegetative cycle') : (lang === 'sw' ? 'Inasubiri uchambuzi wa hali ya tabianchi...' : 'Waiting for seasonal stress analysis...'))}
           </div>
 
           {soil && !soil.available && (
             <div style={{ padding: '8px 10px', background: 'var(--status-gap-bg)', border: '1px solid var(--status-gap-border)', borderRadius: 3 }}>
-              <strong>Soil Telemetry Gap:</strong> Remote soil API unavailable for this pixel. Use Ground-Truth Overrides below to calibrate pH &amp; texture.
+              <strong>{t('hero.soil_gap') || 'Soil Telemetry Gap:'}</strong> {t('hero.soil_gap_desc') || 'Remote soil API unavailable for this pixel. Use Ground-Truth Overrides below to calibrate pH & texture.'}
             </div>
           )}
 
@@ -153,38 +178,40 @@ export default function Hero({ streamLog = [], streaming, climate, ndvi, soil, t
 
           {/* 5-Year Climatological Trajectory & Theil-Sen Slopes */}
           {climate?.yearly_trends && climate.yearly_trends.length > 0 && (
-            <div id="climate-drift" style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid var(--border-default)' }}>
+            <div id="climate-drift" style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid var(--border-default)', scrollMarginTop: '76px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                 <span style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: 11, fontWeight: 600, color: 'var(--ink-primary)' }}>
-                  5-YEAR NASA POWER CLIMATIC DRIFT &amp; THEIL-SEN SLOPES
+                  {t('telemetry.five_year_table_title').toUpperCase()}
                 </span>
                 <span style={{ fontSize: 10, color: 'var(--ink-tertiary)', fontFamily: 'IBM Plex Mono, monospace' }}>
                   MERRA-2 POINT TELEMETRY
                 </span>
               </div>
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', fontSize: 11, borderCollapse: 'collapse', textAlign: 'left' }}>
+              
+              {/* Wrapped in overflow-x-auto w-full with concise columns and compact cell padding to prevent clipping */}
+              <div className="overflow-x-auto w-full">
+                <table className="w-full text-left text-[11px] font-mono border-collapse min-w-full">
                   <thead>
                     <tr style={{ borderBottom: '1px solid var(--border-default)', color: 'var(--ink-secondary)', fontFamily: 'IBM Plex Mono, monospace' }}>
-                      <th style={{ padding: '4px 6px' }} className="whitespace-nowrap">Year</th>
-                      <th style={{ padding: '4px 6px' }} className="whitespace-nowrap"><FarmerTooltip termKey="rain_et0">Rain (mm)</FarmerTooltip></th>
-                      <th style={{ padding: '4px 6px' }} className="whitespace-nowrap"><FarmerTooltip termKey="et0">Thirst (ET0 mm)</FarmerTooltip></th>
-                      <th style={{ padding: '4px 6px' }} className="whitespace-nowrap"><FarmerTooltip termKey="gwetroot">Root Wetness</FarmerTooltip></th>
-                      <th style={{ padding: '4px 6px' }} className="whitespace-nowrap">Heat (&gt;35C)</th>
-                      <th style={{ padding: '4px 6px' }} className="whitespace-nowrap">Frost (&lt;2C)</th>
+                      <th className="px-1.5 py-1 whitespace-nowrap">{t('telemetry.col_year')}</th>
+                      <th className="px-1.5 py-1 whitespace-nowrap"><FarmerTooltip termKey="rain_et0">{t('telemetry.col_rain')}</FarmerTooltip></th>
+                      <th className="px-1.5 py-1 whitespace-nowrap"><FarmerTooltip termKey="et0">{t('telemetry.col_thirst')}</FarmerTooltip></th>
+                      <th className="px-1.5 py-1 whitespace-nowrap"><FarmerTooltip termKey="gwetroot">{t('telemetry.col_root_wetness')}</FarmerTooltip></th>
+                      <th className="px-1.5 py-1 whitespace-nowrap">{t('telemetry.col_heat')}</th>
+                      <th className="px-1.5 py-1 whitespace-nowrap">{t('telemetry.col_frost')}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {climate.yearly_trends.map((yr) => (
                       <tr key={yr.year} style={{ borderBottom: '1px solid rgba(221, 217, 206, 0.5)' }}>
-                        <td style={{ padding: '4px 6px', fontWeight: 600 }} className="font-mono-tabular whitespace-nowrap">{yr.year}</td>
-                        <td style={{ padding: '4px 6px' }} className="font-mono-tabular whitespace-nowrap">{yr.precip_mm}</td>
-                        <td style={{ padding: '4px 6px' }} className="font-mono-tabular whitespace-nowrap">{yr.et0_mm}</td>
-                        <td style={{ padding: '4px 6px' }} className="font-mono-tabular whitespace-nowrap">{yr.gwet_root || yr.gwet_root_mean}</td>
-                        <td style={{ padding: '4px 6px', color: (yr.heat_days || yr.heat_days_gt35) > 15 ? 'var(--status-stress-fg)' : 'inherit' }} className="font-mono-tabular whitespace-nowrap">
+                        <td className="px-1.5 py-1 font-semibold font-mono-tabular whitespace-nowrap">{yr.year}</td>
+                        <td className="px-1.5 py-1 font-mono-tabular whitespace-nowrap">{yr.precip_mm}</td>
+                        <td className="px-1.5 py-1 font-mono-tabular whitespace-nowrap">{yr.et0_mm}</td>
+                        <td className="px-1.5 py-1 font-mono-tabular whitespace-nowrap">{yr.gwet_root || yr.gwet_root_mean}</td>
+                        <td className="px-1.5 py-1 font-mono-tabular whitespace-nowrap" style={{ color: (yr.heat_days || yr.heat_days_gt35) > 15 ? 'var(--status-stress-fg)' : 'inherit' }}>
                           {yr.heat_days ?? yr.heat_days_gt35} d
                         </td>
-                        <td style={{ padding: '4px 6px' }} className="font-mono-tabular whitespace-nowrap">{yr.frost_days ?? yr.frost_days_lt2} d</td>
+                        <td className="px-1.5 py-1 font-mono-tabular whitespace-nowrap">{yr.frost_days ?? yr.frost_days_lt2} d</td>
                       </tr>
                     ))}
                   </tbody>
@@ -193,16 +220,16 @@ export default function Hero({ streamLog = [], streaming, climate, ndvi, soil, t
               {climate.trend_slopes && (
                 <div className="mt-3 flex flex-wrap gap-2 text-[10px] font-mono">
                   <span className="px-2 py-1 bg-white border border-[#DDD9CE] rounded-xs text-[#1C231F]">
-                    Rainfall Trend: <strong className="text-[#234E36]">{climate.trend_slopes.precip_slope_mm_yr ?? climate.trend_slopes.precip_mm_per_yr ?? '--'} mm/yr</strong>
+                    {t('telemetry.trend_rainfall')} <strong className="text-[#234E36]">{climate.trend_slopes.precip_slope_mm_yr ?? climate.trend_slopes.precip_mm_per_yr ?? '--'} mm/yr</strong>
                   </span>
                   <span className="px-2 py-1 bg-white border border-[#DDD9CE] rounded-xs text-[#1C231F]">
-                    ET0 Trend: <strong>{climate.trend_slopes.et0_slope_mm_yr ?? climate.trend_slopes.et0_mm_per_yr ?? '--'} mm/yr</strong>
+                    {t('telemetry.trend_et0')} <strong>{climate.trend_slopes.et0_slope_mm_yr ?? climate.trend_slopes.et0_mm_per_yr ?? '--'} mm/yr</strong>
                   </span>
                   <span className="px-2 py-1 bg-white border border-[#DDD9CE] rounded-xs text-[#1C231F]">
-                    Root Wetness: <strong>{climate.trend_slopes.gwet_slope_per_yr ?? climate.trend_slopes.gwet_per_yr ?? '--'}/yr</strong>
+                    {t('telemetry.trend_root_wetness')} <strong>{climate.trend_slopes.gwet_slope_per_yr ?? climate.trend_slopes.gwet_per_yr ?? '--'}/yr</strong>
                   </span>
                   <span className="px-2 py-1 bg-white border border-[#DDD9CE] rounded-xs text-[#1C231F]">
-                    Heatwave Drift: <strong className="text-[#9E3426]">{climate.trend_slopes.heat_days_slope_per_yr ?? climate.trend_slopes.heat_days_per_yr ?? '--'} d/yr</strong>
+                    {t('telemetry.trend_heatwave')} <strong className="text-[#9E3426]">{climate.trend_slopes.heat_days_slope_per_yr ?? climate.trend_slopes.heat_days_per_yr ?? '--'} d/yr</strong>
                   </span>
                 </div>
               )}
@@ -216,32 +243,32 @@ export default function Hero({ streamLog = [], streaming, climate, ndvi, soil, t
         <section className="swiss-panel p-3">
           <div className="flex items-center justify-between pb-2 mb-2 border-b border-[#DDD9CE]">
             <h2 className="text-xs font-mono font-semibold uppercase tracking-wide text-[#1C231F]">
-              Identified Rotation Opportunities
+              {t('telemetry.identified_opportunities')}
             </h2>
             <ShieldCheck size={14} color="var(--accent-canopy)" />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
             <div style={{ border: '1px solid var(--border-default)', padding: 9, borderRadius: 3, background: 'var(--bg-subtle)' }}>
               <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5, marginBottom: 3 }}>
-                <Bug size={13} color="var(--accent-canopy)" /> Interrupt Pest Cycles
+                <Bug size={13} color="var(--accent-canopy)" /> {t('telemetry.opp_pest')}
               </div>
               <div style={{ color: 'var(--ink-secondary)' }}>{opps.interrupt_pest_cycles}</div>
             </div>
             <div style={{ border: '1px solid var(--border-default)', padding: 9, borderRadius: 3, background: 'var(--bg-subtle)' }}>
               <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5, marginBottom: 3 }}>
-                <Droplets size={13} color="var(--accent-hydro)" /> Reduce Water Demand
+                <Droplets size={13} color="var(--accent-hydro)" /> {t('telemetry.opp_water')}
               </div>
               <div style={{ color: 'var(--ink-secondary)' }}>{opps.reduce_water_demand}</div>
             </div>
             <div style={{ border: '1px solid var(--border-default)', padding: 9, borderRadius: 3, background: 'var(--bg-subtle)' }}>
               <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5, marginBottom: 3 }}>
-                <Sprout size={13} color="var(--accent-canopy)" /> Improve Infiltration
+                <Sprout size={13} color="var(--accent-canopy)" /> {t('telemetry.opp_soil')}
               </div>
               <div style={{ color: 'var(--ink-secondary)' }}>{opps.improve_infiltration}</div>
             </div>
             <div style={{ border: '1px solid var(--border-default)', padding: 9, borderRadius: 3, background: 'var(--bg-subtle)' }}>
               <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5, marginBottom: 3 }}>
-                <TrendingUp size={13} color="var(--status-watch-fg)" /> Supplemental Income
+                <TrendingUp size={13} color="var(--status-watch-fg)" /> {t('telemetry.opp_income')}
               </div>
               <div style={{ color: 'var(--ink-secondary)' }}>{opps.add_supplemental_income}</div>
             </div>

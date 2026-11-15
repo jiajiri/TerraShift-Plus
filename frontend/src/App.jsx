@@ -1,12 +1,14 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { fetchBackendCrops, streamFieldOptimization } from './api';
+import { useI18n } from './i18n/I18nContext';
 import Navbar from './components/Navbar';
+
 import GeospatialMap from './components/GeospatialMap';
 import Hero from './components/Hero';
 import BenchmarkMatrix from './components/BenchmarkMatrix';
 import RotationSimulator from './components/RotationSimulator';
 import FieldAdvisorFAB from './components/FieldAdvisorFAB';
-import PresentationModal from './components/PresentationModal';
+import AboutModal from './components/AboutModal';
 import FAQ from './components/FAQ';
 import Footer from './components/Footer';
 
@@ -15,10 +17,11 @@ const DEFAULT_LON = Number(import.meta.env.VITE_DEFAULT_LON ?? 35.7516);
 const DEFAULT_ZOOM = Number(import.meta.env.VITE_DEFAULT_ZOOM ?? 11);
 
 export default function App() {
+  const { t, lang } = useI18n();
   const [coords, setCoords] = useState({ lat: DEFAULT_LAT, lon: DEFAULT_LON });
   const [placeLabel, setPlaceLabel] = useState('Central Semiarid Zone (Dodoma, TZ)');
   const [showCalibration, setShowCalibration] = useState(false);
-  const [isAuditModalOpen, setIsAuditModalOpen] = useState(false);
+  const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   // Map layer & grid metric control states (can be manipulated via FAB actions)
@@ -49,6 +52,7 @@ export default function App() {
   const [climatePerturb, setClimatePerturb] = useState({ rainDeltaPct: 0, tempDeltaC: 0 });
 
   const abortRef = useRef(null);
+  const activeRequestIdRef = useRef(0);
 
   useEffect(() => {
     fetchBackendCrops()
@@ -60,21 +64,23 @@ export default function App() {
     if (abortRef.current) abortRef.current.abort();
     const controller = new AbortController();
     abortRef.current = controller;
+    const reqId = ++activeRequestIdRef.current;
 
-    setStreaming(true);
-    setStreamError(null);
-    setStreamLog([]);
-    // Reset previous point data so stale summary is not shown while new point loads
+    // Atomically reset all data states
     setClimate(null);
     setTerrain(null);
     setNdvi(null);
     setSoil(null);
     setVulnerabilityGrid(null);
     setOptimization(null);
+    setStreamLog([]);
+    setStreamError(null);
+    setStreaming(true);
 
     const payload = {
       latitude: lat,
       longitude: lon,
+      language: lang,
       precip_delta_pct: climatePerturb.rainDeltaPct,
       temp_delta_c: climatePerturb.tempDeltaC,
       soil_overrides: {
@@ -106,6 +112,7 @@ export default function App() {
       await streamFieldOptimization(
         payload,
         (eventName, data) => {
+          if (reqId !== activeRequestIdRef.current) return; // drop any packet from superseded requests
           if (eventName === 'step') {
             setStreamLog((prev) => [...prev, { stage: data.stage, status: data.status, duration_ms: data.duration_ms }]);
             if (data.stage === 'climate' && data.status === 'live') setClimate(data.data);
@@ -113,9 +120,19 @@ export default function App() {
             if (data.stage === 'soil') setSoil(data.data);
             if (data.stage === 'terrain' && data.status === 'live') setTerrain(data.data);
             if (data.stage === 'vulnerability_grid' && data.status === 'live') setVulnerabilityGrid(data.data);
+          } else if (eventName === 'terrain') {
+            setTerrain(data);
+          } else if (eventName === 'vulnerability_grid') {
+            setVulnerabilityGrid(data);
+          } else if (eventName === 'soil') {
+            setSoil(data);
+          } else if (eventName === 'climate') {
+            setClimate(data);
+          } else if (eventName === 'ndvi') {
+            setNdvi(data);
           } else if (eventName === 'optimization') {
             setStreamLog((prev) => [...prev, { stage: 'ml_pareto', status: 'live', duration_ms: data.duration_ms }]);
-            setOptimization(data.result);
+            setOptimization(data.result || data);
           } else if (eventName === 'error') {
             setStreamError(data.message);
           }
@@ -125,9 +142,9 @@ export default function App() {
     } catch (err) {
       if (err.name !== 'AbortError') setStreamError(err.message);
     } finally {
-      setStreaming(false);
+      if (reqId === activeRequestIdRef.current) setStreaming(false);
     }
-  }, [climatePerturb, overrides, constraints, priorities]);
+  }, [climatePerturb, overrides, constraints, priorities, lang]);
 
   // Auto-run whenever map coordinates change
   useEffect(() => {
@@ -166,66 +183,86 @@ export default function App() {
     <div className="min-h-screen bg-[#F6F5F0] text-[#1C231F] flex flex-col font-sans">
       <Navbar
         coords={coords}
-        terrain={terrain ? { elevationM: terrain.elevation_m, slopePct: terrain.slope_pct } : null}
-        sourceHealth={sourceHealth}
         onSelectLocation={handleSelectLocation}
         onLocationSelect={handleSelectLocation}
-        onOpenAudit={() => setIsAuditModalOpen(true)}
-        onOpenAuditModal={() => setIsAuditModalOpen(true)}
         isRefreshing={streaming}
         streaming={streaming}
         onRefreshTelemetry={() => runLiveStream(coords.lat, coords.lon)}
         onPlaceResolved={handlePlaceResolved}
+        onOpenAbout={() => setIsAboutModalOpen(true)}
       />
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 pt-20 pb-12 space-y-6">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 pt-4 pb-12 space-y-6">
         {streamError && (
           <div style={{ padding: '10px 14px', background: 'var(--status-stress-bg)', border: '1px solid var(--status-stress-border)', color: 'var(--status-stress-fg)', borderRadius: 4, fontSize: 12 }}>
-            Pipeline Notice: {streamError}
+            {t('common.pipeline_notice', { error: streamError })}
           </div>
         )}
 
-        {/* Active Location Info Bar */}
-        <div className="swiss-panel p-3 flex flex-col sm:flex-row items-start sm:items-center justify-between text-xs font-mono gap-2">
-          <div>
-            <span className="text-[#767E78]">ACTIVE FIELD LOCATION: </span>
-            <span className="font-semibold text-[#1C231F]">{placeLabel}</span>
-          </div>
-          <div className="flex items-center space-x-3 text-[11px] text-[#4E5851]">
-            <span>LAT: {coords.lat.toFixed(4)}</span>
-            <span>LON: {coords.lon.toFixed(4)}</span>
-            <span className="px-1.5 py-0.5 bg-[#EAF3ED] text-[#265D3D] font-semibold rounded-xs">
-              SAMPLE: CONTINUOUS
+        {/* Redesigned Field Status Header Card (Clean on sm, md, and lg) */}
+        <div className="swiss-panel p-3 flex flex-col md:flex-row md:items-center justify-between text-xs font-mono gap-2.5">
+          {/* Left Block: Location Identity with Unbreakable Monospace Coordinates */}
+          <div className="flex flex-wrap items-center gap-2 min-w-0">
+            <span className="w-2 h-2 rounded-full bg-[#234E36] shrink-0"></span>
+            <span className="font-semibold text-[#1C231F] text-xs sm:text-[13px] truncate max-w-[280px] sm:max-w-[400px] lg:max-w-[500px]" title={placeLabel}>
+              {placeLabel}
             </span>
+            <span className="inline-block px-1.5 py-0.5 bg-[#EFEDE6] border border-[#DDD9CE] text-[#4E5851] text-[11px] font-mono rounded-xs shrink-0 whitespace-nowrap">
+              [{coords.lat.toFixed(4)}, {coords.lon.toFixed(4)}]
+            </span>
+          </div>
+
+          {/* Right Block: Compact Single-Row Telemetry Pills */}
+          <div className="flex flex-wrap items-center gap-1.5 shrink-0">
+            {streaming ? (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-[#FBF3E4] text-[#8C5710] border border-[#E5C99B] font-semibold text-[10px] rounded-xs animate-pulse whitespace-nowrap">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#8C5710]"></span>
+                <span>{t('advisor.analyzing') || 'Sampling...'}</span>
+              </span>
+            ) : (
+              <span className="inline-flex items-center px-1.5 py-0.5 bg-[#EAF3ED] text-[#265D3D] font-medium text-[10px] border border-[#B8D8C3] rounded-xs whitespace-nowrap">
+                {t('common.sample_continuous') || 'Continuous 5Y'}
+              </span>
+            )}
+
+            {terrain && (
+              <span className="px-2 py-0.5 bg-white border border-[#DDD9CE] text-[#4E5851] rounded-xs font-mono text-[10.5px] whitespace-nowrap">
+                {t('navbar.elev')}: {terrain.elevation_m}m | {t('navbar.slope')}: {terrain.slope_pct}%
+              </span>
+            )}
+
+            <div className="flex items-center space-x-1 text-[10px] font-mono shrink-0">
+              <span className={`px-1.5 py-0.5 border rounded-xs font-medium ${sourceHealth.climate === 'live' ? 'bg-[#EAF3ED] text-[#265D3D] border-[#B8D8C3]' : 'bg-[#FBF3E4] text-[#8C5710] border-[#E5C99B]'}`}>POWER</span>
+              <span className={`px-1.5 py-0.5 border rounded-xs font-medium ${sourceHealth.ndvi === 'live' ? 'bg-[#EAF3ED] text-[#265D3D] border-[#B8D8C3]' : 'bg-[#FBF3E4] text-[#8C5710] border-[#E5C99B]'}`}>MODIS</span>
+              <span className={`px-1.5 py-0.5 border rounded-xs font-medium ${sourceHealth.soil === 'live' ? 'bg-[#EAF3ED] text-[#265D3D] border-[#B8D8C3]' : 'bg-[#EEF0F2] text-[#4D555E] border-[#CFD4D9]'}`}>SOIL</span>
+            </div>
           </div>
         </div>
 
-        {/* Top Row: Map Prominent & Full-Width with Docked Swiss Controls */}
-        <div className="relative w-full rounded-sm overflow-hidden border border-[#DDD9CE] bg-white shadow-sm" style={{ height: '580px' }}>
-          <GeospatialMap
-            coords={coords}
-            coordinates={coords}
-            placeLabel={placeLabel}
-            zoom={DEFAULT_ZOOM}
-            mapSummary={mapSummary}
-            streaming={streaming}
-            vulnerabilityGrid={vulnerabilityGrid}
-            onSelectPoint={(lat, lon) => handleSelectLocation(lat, lon)}
-            onCoordinateChange={(lat, lon) => handleSelectLocation(lat, lon)}
-            onOpenAnalysis={() => setIsDrawerOpen(true)}
-            isDrawerOpen={isDrawerOpen}
-            activeGridMetric={mapGridMetric}
-            onGridMetricChange={setMapGridMetric}
-            activeOverlayKey={mapOverlayKey}
-            onOverlayKeyChange={setMapOverlayKey}
-          />
+        {/* Upper Body: Balanced Responsive 2-Column Grid on Large, Stacked on Med/Small */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
+          {/* Map Column (col-span-7 on desktop, 1fr on md/sm) */}
+          <div className="lg:col-span-7 rounded-sm overflow-hidden border border-[#DDD9CE] bg-white shadow-sm flex flex-col h-full min-h-[520px]">
+            <GeospatialMap
+              coords={coords}
+              coordinates={coords}
+              placeLabel={placeLabel}
+              zoom={DEFAULT_ZOOM}
+              mapSummary={mapSummary}
+              streaming={streaming}
+              vulnerabilityGrid={vulnerabilityGrid}
+              onSelectPoint={(lat, lon) => handleSelectLocation(lat, lon)}
+              onCoordinateChange={(lat, lon) => handleSelectLocation(lat, lon)}
+              isDrawerOpen={false}
+              activeGridMetric={mapGridMetric}
+              onGridMetricChange={setMapGridMetric}
+              activeOverlayKey={mapOverlayKey}
+              onOverlayKeyChange={setMapOverlayKey}
+            />
+          </div>
 
-          {/* Animated Slide-in Telemetry & Vulnerability Drawer from Right to Center */}
-          <div
-            className={`absolute top-0 right-0 h-full w-full sm:w-[500px] md:w-[560px] bg-[#F6F5F0] border-l border-[#DDD9CE] shadow-2xl z-[450] transform transition-transform duration-300 ease-in-out overflow-y-auto p-4 ${
-              isDrawerOpen ? 'translate-x-0' : 'translate-x-full'
-            }`}
-          >
+          {/* Field Vulnerability & Climate Drift Column (col-span-5 on desktop, 1fr on md/sm) */}
+          <div className="lg:col-span-5 flex flex-col justify-start">
             <Hero
               streamLog={streamLog}
               streaming={streaming}
@@ -234,8 +271,6 @@ export default function App() {
               soil={soil}
               terrain={terrain}
               optimization={optimization}
-              onClose={() => setIsDrawerOpen(false)}
-              onOpenProvenance={() => setIsAuditModalOpen(true)}
             />
           </div>
         </div>
@@ -245,10 +280,10 @@ export default function App() {
           <div className="flex items-center justify-between">
             <div>
               <span className="text-xs font-mono font-semibold uppercase tracking-wide text-[#1C231F]">
-                Ground-Truth Calibration &amp; Farm Constraints
+                {t('common.ground_truth_calibration_title')}
               </span>
               <p className="text-[11px] text-[#767E78]">
-                Adjust soil tests, irrigation access, or priority weights to refine the PIML Pareto optimizer.
+                {t('common.ground_truth_calibration_desc')}
               </p>
             </div>
             <button
@@ -256,7 +291,7 @@ export default function App() {
               className="h-7 px-3 bg-white border border-[#DDD9CE] text-xs font-mono text-[#1C231F] hover:bg-[#E7E4DA] rounded-xs"
               onClick={() => setShowCalibration((v) => !v)}
             >
-              {showCalibration ? 'HIDE CALIBRATION' : 'CALIBRATE CONSTRAINTS'}
+              {showCalibration ? t('common.hide_calibration') : t('common.calibrate_constraints')}
             </button>
           </div>
 
@@ -275,12 +310,24 @@ export default function App() {
         </div>
 
         {/* Automatic 4-Strategy Comparison & Evidence/Gaps/Local Review Risks */}
-        <RotationSimulator
-          optimization={optimization}
-          climate={climate}
-          climatePerturb={climatePerturb}
-          onChangePerturb={setClimatePerturb}
-        />
+        {streaming && !optimization ? (
+          <div className="swiss-panel p-6 flex flex-col items-center justify-center space-y-3 min-h-[220px] animate-pulse">
+            <div className="w-8 h-8 rounded-full border-2 border-[#234E36] border-t-transparent animate-spin" />
+            <div className="text-xs font-mono font-semibold uppercase tracking-wide text-[#1C231F]">
+              Evaluating Agro-Ecological Rotations & Pareto Frontiers...
+            </div>
+            <p className="text-[11px] font-mono text-[#767E78] text-center max-w-md">
+              Sampling NASA POWER, MODIS NDVI, SoilGrids, and SRTM elevation telemetry to construct 5-year multi-objective rotation sequences.
+            </p>
+          </div>
+        ) : (
+          <RotationSimulator
+            optimization={optimization}
+            climate={climate}
+            climatePerturb={climatePerturb}
+            onChangePerturb={setClimatePerturb}
+          />
+        )}
 
         <FAQ
           climate={climate}
@@ -297,18 +344,18 @@ export default function App() {
         climate={climate}
         optimization={optimization}
         terrain={terrain}
+        vulnerabilityGrid={vulnerabilityGrid}
+        fusionGrid={optimization?.common_fusion_grid}
         onSetMapGrid={setMapGridMetric}
         onSetMapOverlay={setMapOverlayKey}
-        onOpenProvenance={() => setIsAuditModalOpen(true)}
       />
 
-      <PresentationModal
-        isOpen={isAuditModalOpen}
-        onClose={() => setIsAuditModalOpen(false)}
-        telemetry={{ power: climate, soil, elevation: terrain, modis: ndvi, coordinates: coords }}
+      <AboutModal
+        isOpen={isAboutModalOpen}
+        onClose={() => setIsAboutModalOpen(false)}
       />
 
-      <Footer />
+      <Footer onOpenAbout={() => setIsAboutModalOpen(true)} />
     </div>
   );
 }

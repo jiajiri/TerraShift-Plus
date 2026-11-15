@@ -1,0 +1,192 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "TerraShift+ Agronomic Decision-Support API",
+    "version": "2.0.0",
+    "description": "Closed-loop NASA Earth Observation, biophysical modeling (FAO-56 Penman-Monteith, Saxton-Rawls, RUSLE), quantile ML surrogate, and MCP-enabled bilingual (EN/SW) Field Advisor API."
+  },
+  "servers": [
+    {
+      "url": "/",
+      "description": "Active Cloudflare Pages / Local Origin"
+    },
+    {
+      "url": "http://localhost:8000",
+      "description": "Local FastAPI Python Backend"
+    }
+  ],
+  "paths": {
+    "/api/health": {
+      "get": {
+        "tags": ["System"],
+        "summary": "Health check",
+        "description": "Returns operational status and active mission health.",
+        "responses": {
+          "200": {
+            "description": "Service operational status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string", "example": "healthy" },
+                    "version": { "type": "string", "example": "2.0.0" },
+                    "runtime": { "type": "string", "example": "Cloudflare Pages Functions (Edge V8)" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/crops": {
+      "get": {
+        "tags": ["Agronomy"],
+        "summary": "List FAO EcoCrop physiological crop catalog",
+        "description": "Returns externalized FAO EcoCrop catalog including base temperatures, rooting depths, and GDD requirements.",
+        "responses": {
+          "200": {
+            "description": "Array of crop physiological constants",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": { "type": "string", "example": "maize" },
+                      "name": { "type": "string", "example": "Maize (Zea mays)" },
+                      "role": { "type": "string", "example": "grain" },
+                      "family": { "type": "string", "example": "Poaceae" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pipeline/health": {
+      "get": {
+        "tags": ["NASA Telemetry"],
+        "summary": "Audit NASA CMR & Harvest Portal availability for coordinates",
+        "description": "Validates active mission granules and latency for a given field centroid.",
+        "parameters": [
+          { "name": "lat", "in": "query", "required": true, "schema": { "type": "number", "example": -6.163 } },
+          { "name": "lon", "in": "query", "required": true, "schema": { "type": "number", "example": 35.7516 } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Live mission granule status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string", "example": "healthy" },
+                    "missions_audited": { "type": "integer", "example": 5 }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/mcp/tools": {
+      "get": {
+        "tags": ["MCP Copilot"],
+        "summary": "List available Model Context Protocol (MCP) tools",
+        "description": "Provides tool manifest schemas for agentic tool calling.",
+        "responses": {
+          "200": {
+            "description": "MCP tool JSON schemas",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "tools": { "type": "array" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/optimize/stream": {
+      "post": {
+        "tags": ["Optimization (SSE)"],
+        "summary": "Stream live NASA/Soil/DEM telemetry and 5-year Pareto crop rotation strategies",
+        "description": "Server-Sent Events endpoint streaming terrain, 3x3 vulnerability grid, soil parameters, climate metrics, and 4 Pareto rotation strategies.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["latitude", "longitude"],
+                "properties": {
+                  "latitude": { "type": "number", "example": -6.163 },
+                  "longitude": { "type": "number", "example": 35.7516 },
+                  "language": { "type": "string", "enum": ["en", "sw"], "default": "en" },
+                  "precip_delta_pct": { "type": "number", "default": 0 },
+                  "temp_delta_c": { "type": "number", "default": 0 },
+                  "constraints": { "type": "object" },
+                  "soil_overrides": { "type": "object" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Server-Sent Events stream (init, step, terrain, vulnerability_grid, soil, climate, optimization, done)",
+            "content": {
+              "text/event-stream": {
+                "schema": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/chat/stream": {
+      "post": {
+        "tags": ["MCP Copilot"],
+        "summary": "Stream bilingual (EN/SW) grounded Field Advisor responses with MCP tool execution",
+        "description": "Executes MCP tools and streams conversational agronomic guidance with verified citations and numerical guardrails.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["question"],
+                "properties": {
+                  "question": { "type": "string", "example": "Why is my soil exposed in July?" },
+                  "language": { "type": "string", "enum": ["auto", "en", "sw"], "default": "auto" },
+                  "optimization_context": { "type": "object" },
+                  "climate_context": { "type": "object" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Server-Sent Events stream (tool_call, tool_result, token, verified_links, done)",
+            "content": {
+              "text/event-stream": {
+                "schema": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

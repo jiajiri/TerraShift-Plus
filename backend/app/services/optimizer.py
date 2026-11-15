@@ -12,6 +12,58 @@ from ..schemas.agro import (
 from .agronomy_engine import AgronomyEngine
 
 # User-facing intuitive crop descriptions replacing raw academic/botanical jargon
+SW_CROPS = {
+    "maize": "Mahindi",
+    "corn": "Mahindi",
+    "pigeonpea": "Mbaazi",
+    "cowpea": "Kunde",
+    "finger_millet": "Ulezi",
+    "sorghum": "Mtama",
+    "pearl_millet": "Uwele",
+    "sesame": "Ufuta",
+    "sunflower": "Alizeti",
+    "chickpea": "Dengu",
+    "alfalfa": "Alfafaa",
+    "winter_wheat": "Ngano",
+    "crimson_clover": "Klova",
+    "tillage_radish": "Figili ya Udongo",
+    "bare_fallow": "Ardhi Tupu",
+    "cassava": "Mhogo",
+    "groundnut": "Karanga",
+    "teff": "Tefi",
+}
+
+SW_FAMILIES = {
+    "Poaceae": "Jamii ya Nafaka",
+    "Fabaceae": "Jamii ya Mikunde (Hurutubisha Naitrojeni)",
+    "Pedaliaceae": "Jamii ya Mbegu za Mafuta (Ufuta)",
+    "Asteraceae": "Jamii ya Alizeti",
+    "Brassicaceae": "Jamii ya Figili/Kabichi",
+}
+
+SW_FAMILY_DESCRIPTIONS: Dict[str, str] = {
+    "Poaceae": "Nafaka (Mahindi, Mtama)",
+    "Fabaceae": "Mikunde ya Kurutubisha Naitrojeni (Mbaazi, Dengu, Kunde)",
+    "Fabaceae (Legume)": "Mikunde ya Kurutubisha Naitrojeni (Mbaazi, Dengu, Kunde)",
+    "Pedaliaceae": "Mbegu za Mafuta (Ufuta)",
+    "Euphorbiaceae": "Mizizi Inayostahimili Ukame (Mhogo)",
+}
+
+SW_ARCHETYPES = {
+    "Status Quo Baseline": "Msimamo wa Sasa (Msingi)",
+    "Resilience-First": "Ustahimilivu wa Ukame",
+    "Balanced Stewardship": "Uwiano wa Mavuno na Udongo",
+    "Yield-Maximizing": "Mavuno ya Juu Zaidi",
+}
+
+SW_FAMILIES = {
+    "Poaceae": "Jamii ya Nafaka",
+    "Fabaceae": "Jamii ya Mikunde (Hurutubisha Naitrojeni)",
+    "Pedaliaceae": "Jamii ya Mbegu za Mafuta (Ufuta)",
+    "Asteraceae": "Jamii ya Alizeti",
+    "Brassicaceae": "Jamii ya Figili/Kabichi",
+}
+
 FAMILY_DESCRIPTIONS: Dict[str, str] = {
     "Poaceae": "Grain Family (Maize, Sorghum)",
     "Fabaceae": "Nitrogen-Fixing Legume (Pigeonpea, Chickpea, Cowpea)",
@@ -657,6 +709,21 @@ def _build_field_diagnosis(
     }
 
 
+def _format_strategy_narrative(
+    strat: Dict[str, Any],
+    baseline: Dict[str, Any],
+    crop_map: Dict[str, Dict[str, Any]],
+    power_data: Dict[str, Any],
+    soil: Dict[str, Any],
+    diagnosis: Dict[str, Any],
+    constraints: Dict[str, Any],
+    language: str = "en",
+) -> Dict[str, Any]:
+    return _enrich_strategy_explanations(
+        strat, baseline, crop_map, power_data, soil, diagnosis, constraints, language
+    )
+
+
 def _enrich_strategy_explanations(
     strat: Dict[str, Any],
     baseline: Dict[str, Any],
@@ -665,12 +732,14 @@ def _enrich_strategy_explanations(
     soil: Dict[str, Any],
     diagnosis: Dict[str, Any],
     constraints: Dict[str, Any],
+    language: str = "en",
 ) -> Dict[str, Any]:
     seq_crops = [crop_map[cid] for cid in strat["sequence"]]
     unique_crops = list({c["id"]: c for c in seq_crops}.values())
     raw_families = sorted({c.get("family", "Poaceae") for c in seq_crops})
     family_descs = [format_family_description(f) for f in raw_families]
-    is_base = strat["archetype"] == "Status Quo Baseline"
+    archetype = strat.get("archetype", "")
+    is_base = archetype == "Status Quo Baseline"
 
     water_saved_mm = round(baseline["mean_et_demand_mm"] - strat["mean_et_demand_mm"], 1)
     rusle_drop = round(baseline["mean_rusle_t_ha"] - strat["mean_rusle_t_ha"], 2)
@@ -717,18 +786,136 @@ def _enrich_strategy_explanations(
         "Crop gross margins use baseline reference coefficients and exclude local transport costs, seed prices, and seasonal buyer contracts.",
     ]
 
-    risks = []
+    risks: List[str] = []
+
+    # Archetype-specific operational & agronomic risk profiles
+    if archetype == "Status Quo Baseline":
+        risks.extend([
+            "Continuous monoculture accelerates root pathogen accumulation and weed seed bank concentration.",
+            "Soil organic carbon depletion and high synthetic nitrogen dependency exacerbate long-term soil exhaustion.",
+            "Elevated vulnerability to bare-soil erosion and wind desiccation during dry-season fallow months.",
+        ])
+    elif archetype == "Resilience-First":
+        risks.extend([
+            "Legume inoculation check: verify certified Rhizobium inoculants and monitor sensitivity to soil acidity for effective nitrogen fixation.",
+            "Labor timing: intensive hand-harvesting and pod-stripping requirements for pigeonpea or grain legumes.",
+            "Pest scouting: monitor for pod borers (Helicoverpa armigera) and sucking bugs during flower set and pod development.",
+        ])
+    elif archetype == "Balanced Stewardship":
+        risks.extend([
+            "Multi-crop management: requires staggered sowing windows and balanced labor allocation across distinct botanical families.",
+            "Seed logistics: ensure timely local availability of certified seed for diversified secondary crops (e.g., finger millet, sesame, or cowpea).",
+            "Post-harvest storage: market absorption limits and storage pest vulnerability (e.g., bruchid beetles on stored pulse grains).",
+        ])
+    elif archetype == "Yield-Maximizing":
+        risks.extend([
+            "Peak water demand vulnerability during critical flowering and grain-fill windows under drought shock.",
+            "Commodity price volatility and high synthetic fertilizer cost-to-margin exposure during market downturns.",
+            "Nitrogen split-application timing: requires strict synchronization to prevent nitrate leaching during early heavy precipitation events.",
+        ])
+
+    # Physical threshold environmental warnings
     if soil.get("ph", 6.5) < 5.7 and any(c.get("role") in ("legume", "forage") for c in unique_crops):
         risks.append(f"Topsoil pH ({soil['ph']}) is acidic; verify lime requirement and Rhizobium inoculant viability for legume nodulation.")
     if soil.get("slope_pct", 2.0) > 5.0 and not constraints.get("has_no_till_drill"):
         risks.append(f"Field slope ({soil['slope_pct']}%) elevates storm runoff risk without contour bunds or no-till residue retention.")
     if strat["mean_wsi"] > 0.35 and constraints.get("irrigation_available_mm", 0.0) == 0:
         risks.append(f"Elevated moisture stress (WSI {strat['mean_wsi']}) under rain-fed conditions; confirm onset rainfall timing with local extension agents before seeding.")
+
+
+    if language == "sw":
+        sw_arch_name = SW_ARCHETYPES.get(archetype, archetype)
+        sw_crop_names = [SW_CROPS.get(cid, crop_map[cid]["name"].split("(")[0].strip()) for cid in strat["sequence"]]
+        sw_fam_descs = [SW_FAMILIES.get(f, f) for f in raw_families]
+        if is_base:
+            why = (
+                f"Inapima mazoea yako ya sasa ya kupanda {sw_crop_names[0]} mfululizo kwa miaka 5 "
+                f"ili kuhesabu ongezeko la upungufu wa maji, wadudu, na mmomonyoko bila kubadilisha mazao."
+            )
+        else:
+            why = (
+                f"Imechaguliwa kama mzunguko bora wa '{sw_arch_name}' ukijumuisha makundi {len(sw_fam_descs)} ya mazao "
+                f"({', '.join(sw_fam_descs)}) ili kukabiliana na miezi {len(diagnosis['bare_months'])} ya ardhi tupu na "
+                f"upungufu wa maji wa {bal_mm} mm/mwaka."
+            )
+
+        evidence = (
+            f"Vipimo vya satelaiti ya NASA POWER vinaonyesha mvua ya {ann_p} mm/mwaka dhidi ya kiu ya hewa (ET0) ya {ann_et} mm/mwaka "
+            f"(Kiwango cha ukame SPEI: {power_data.get('spei_latest', 0.0)}, unyevu wa mizizi Z={power_data.get('gwet_root_z', 0.0)}). "
+            f"Wasifu wa udongo: pH {soil.get('ph', 6.5)}, Mfinyanzi {soil.get('clay_pct', 24.0)}%, Mwinamo {soil.get('slope_pct', 2.0)}%. "
+            f"Kipindi cha ardhi tupu: {', '.join(diagnosis['bare_months']) or 'Hakuna'}."
+        )
+
+        base_crop_sw = SW_CROPS.get(unique_crops[0]["id"], unique_crops[0]["name"].split("(")[0].strip())
+        benefits = [
+            f"Kukata Mzunguko wa Wadudu: Mazao yanazunguka kwenye makundi {len(sw_fam_descs)} tofauti ({', '.join(sw_fam_descs)}) badala ya kilimo cha zao moja mfululizo la {base_crop_sw}.",
+            f"Uokoaji wa Maji: Uhitaji wa wastani wa maji ni {strat['mean_et_demand_mm']} mm ({'+' if water_saved_mm < 0 else '-'}{abs(water_saved_mm)} mm kulinganisha na msimamo wa sasa); Kielezo cha kiu WSI ni {strat['mean_wsi']}.",
+            f"Uhifadhi wa Udongo: Mmomonyoko wa udongo (RUSLE) ni tani {strat['mean_rusle_t_ha']}/ha/mwaka ({'msingi wa sasa' if is_base else f'tani {rusle_drop:+.2f}/ha zimeokolewa'}); ongezeko la kaboni SOC ni tani {strat['net_soc_5y_t_ha']:+.2f}/ha; ongezeko la Naitrojeni ni kg {strat['net_n_5y_kg_ha']:+.1f}/ha.",
+            f"Uthabiti wa Kipato: Faida ya wastani ya miaka 5 ni ${strat['margin_p50_5y']}/ha ({income_delta:+.1f} dhidi ya msingi wa sasa; uwezekano wa 80% upo kati ya [${strat['margin_p10_5y']}, ${strat['margin_p90_5y']}]; kiwango salama cha ukame CVaR10 ni ${strat['cvar_10_margin_5y']}).",
+        ]
+
+        gaps = [
+            "Data ya satelaiti za NASA POWER na SMAP inawakilisha kanda pana na haionyeshi mikondo midogo ya kienyeji au umwagiliaji wa matone.",
+            "Vipimo vya udongo vinatokana na ramani za satelaiti; vinapaswa kuhakikiwa na maabara ya udongo shambani.",
+            "Makadirio ya faida yanatumia bei elekezi za marejeleo bila kuhesabu gharama halisi za usafiri wa eneo husika.",
+        ]
+
+        sw_risks = []
+        if archetype == "Status Quo Baseline":
+            sw_risks.extend([
+                "Kilimo cha zao moja mfululizo huongeza kasi ya vimelea vya mizizi na mbegu za magugu ardhini.",
+                "Kupungua kwa rutuba asilia na utegemezi mkubwa wa mbolea za viwandani huzeesha udongo kwa haraka.",
+                "Hatari kubwa ya mmomonyoko wa udongo na ardhi kukauka wakati wa kiangazi.",
+            ])
+        elif archetype == "Resilience-First":
+            sw_risks.extend([
+                "Uhifadhi wa Naitrojeni: Hakikisha unaongeza vimelea sahihi (Rhizobium) kwenye mbegu za mikunde na kupima asidi ya udongo.",
+                "Gharama za Mavuno: Uvunaji wa mbaazi unahitaji nguvu kazi zaidi ya mikono wakati wa kuchuma maganda.",
+                "Ufuatiliaji wa Wadudu: Kagua wadudu wa vitumba (Helicoverpa) wakati wa kutoa maua.",
+            ])
+        elif archetype == "Balanced Stewardship":
+            sw_risks.extend([
+                "Usimamizi wa Mazao Mengi: Inahitaji kupanga vizuri ratiba ya kupanda kwa mazao yenye nyakati tofauti za kukomaa.",
+                "Upatikanaji wa Mbegu: Hakikisha mbegu bora zilizoidhinishwa za ulezi, ufuta au kunde zinapatikana kwa wakati.",
+                "Hifadhi Baada ya Mavuno: Andaa vihenge salama kuzuia wadudu waharibifu kama dumuzi au fukusi wa mikunde.",
+            ])
+        elif archetype == "Yield-Maximizing":
+            sw_risks.extend([
+                "Uhitaji mkubwa wa maji wakati wa kutoa maua; kuna hatari ya mavuno kupungua ukame ukitokea ghafla.",
+                "Mabadiliko ya bei za mazao sokoni na gharama kubwa ya pembejeo za mbolea.",
+                "Uwekaji wa Mbolea kwa Awamu: Gawanya mbolea ya naitrojeni kwa uangalifu kuzuia isisafirishwe na mafuriko ya mvua za mwanzo.",
+            ])
+
+        if soil.get("ph", 6.5) < 5.7 and any(c.get("role") in ("legume", "forage") for c in unique_crops):
+            sw_risks.append(f"Udongo una asidi (pH {soil['ph']}); weka chokaa ya kilimo kuboresha ufyonzaji wa naitrojeni ya mikunde.")
+        if soil.get("slope_pct", 2.0) > 5.0 and not constraints.get("has_no_till_drill"):
+            sw_risks.append(f"Mwinamo wa shamba ({soil['slope_pct']}%) unaleta hatari ya mmomonyoko; chimba matuta au fanya kilimo bila kulima sana.")
+        if strat["mean_wsi"] > 0.35 and constraints.get("irrigation_available_mm", 0.0) == 0:
+            sw_risks.append(f"Kiu ya maji ni kubwa (WSI {strat['mean_wsi']}); shauriana na afisa ugani kuhusu tarehe sahihi ya kupanda.")
+
+        if not sw_risks:
+            sw_risks.append("Hakiki upatikanaji wa mbegu zilizoidhinishwa na ratiba ya vibarua na afisa ugani wako wa eneo husika.")
+
+        risks = sw_risks
+
     if not risks:
         risks.append("Validate regional pest/weed pressure, certified seed availability, and harvest labor timing with a local agronomist.")
 
+    # Determine resilience tier based on moisture stress and erosion risk
+    wsi_val = strat.get("mean_wsi", 0.3)
+    rusle_val = strat.get("mean_rusle_t_ha", 4.0)
+    if is_base:
+        resilience_tier = "Ustahimilivu wa Chini (Msingi)" if language == "sw" else "Low Resilience (Baseline)"
+    elif wsi_val <= 0.28 and rusle_val <= 3.5:
+        resilience_tier = "Ustahimilivu wa Juu" if language == "sw" else "High Resilience"
+    elif wsi_val <= 0.38 and rusle_val <= 6.0:
+        resilience_tier = "Ustahimilivu wa Wastani" if language == "sw" else "Moderate Resilience"
+    else:
+        resilience_tier = "Ustahimilivu wa Chini" if language == "sw" else "Low Resilience"
+
     return {
         **strat,
+        "resilience_tier": resilience_tier,
         "why_suggested": why,
         "supporting_evidence": evidence,
         "benefits": benefits,
@@ -745,6 +932,7 @@ def optimize_five_year_rotation(
     precip_delta_pct: float = 0.0,
     temp_delta_c: float = 0.0,
     ndvi_data: Optional[Dict[str, Any]] = None,
+    language: str = "en",
 ) -> Dict[str, Any]:
     from itertools import product
     climatology = power_data["monthly_climatology"]
@@ -898,7 +1086,7 @@ def optimize_five_year_rotation(
         {"archetype": "Yield-Maximizing", **yield_max},
     ]
     enriched = [
-        _enrich_strategy_explanations(s, baseline, crop_map, power_data, soil, diagnosis, constraints)
+        _enrich_strategy_explanations(s, baseline, crop_map, power_data, soil, diagnosis, constraints, language)
         for s in raw_strategies
     ]
 
@@ -907,13 +1095,22 @@ def optimize_five_year_rotation(
     rusle_savings = max(0.0, baseline["mean_rusle_t_ha"] - min(s["mean_rusle_t_ha"] for s in enriched[1:]))
     margin_uplift = max(s["margin_p50_5y"] - baseline["margin_p50_5y"] for s in enriched[1:])
 
-    base_family_intuitive = format_family_description(base_crop.get("family", "Poaceae"))
-    opportunities = {
-        "interrupt_pest_cycles": f"Breaking continuous {base_family_intuitive} planting across up to {max_fams} distinct crop families disrupts soil-borne pests and root pathogens.",
-        "reduce_water_demand": f"Best water-conserving rotation trims seasonal demand by {et_savings:.1f} mm/season.",
-        "improve_infiltration": f"Deep-rooting and cover-crop strategies reduce RUSLE topsoil erosion by up to {rusle_savings:.2f} t/ha/yr while rebuilding SOC.",
-        "add_supplemental_income": f"Diversified rotations project up to {margin_uplift:+.1f} USD/ha over 5 years via off-season pulses/forage.",
-    }
+    if language == "sw":
+        base_family_intuitive = SW_FAMILY_DESCRIPTIONS.get(base_crop.get("family", "Poaceae"), SW_FAMILIES.get(base_crop.get("family", "Poaceae"), "Nafaka"))
+        opportunities = {
+            "interrupt_pest_cycles": f"Kukata upandaji mfululizo wa {base_family_intuitive} kwa kutumia hadi makundi {max_fams} ya mazao hudhibiti wadudu na vimelea vya mizizi.",
+            "reduce_water_demand": f"Mzunguko bora unaobana matumizi ya maji unaokoa {et_savings:.1f} mm/msimu.",
+            "improve_infiltration": f"Mazao yenye mizizi mirefu na ya kufunika ardhi yanapunguza mmomonyoko wa udongo kwa hadi tani {rusle_savings:.2f}/ha/mwaka huku yakijenga kaboni SOC.",
+            "add_supplemental_income": f"Mizunguko iliyochanganywa inakadiriwa kuongeza hadi ${margin_uplift:+.1f}/ha kwa miaka 5 kupitia mikunde na lishe msimu wa kiangazi.",
+        }
+    else:
+        base_family_intuitive = format_family_description(base_crop.get("family", "Poaceae"))
+        opportunities = {
+            "interrupt_pest_cycles": f"Breaking continuous {base_family_intuitive} planting across up to {max_fams} distinct crop families disrupts soil-borne pests and root pathogens.",
+            "reduce_water_demand": f"Best water-conserving rotation trims seasonal demand by {et_savings:.1f} mm/season.",
+            "improve_infiltration": f"Deep-rooting and cover-crop strategies reduce RUSLE topsoil erosion by up to {rusle_savings:.2f} t/ha/yr while rebuilding SOC.",
+            "add_supplemental_income": f"Diversified rotations project up to {margin_uplift:+.1f} USD/ha over 5 years via off-season pulses/forage.",
+        }
 
     from .ml_models import model_registry
     mean_p = sum(m.get("precip_mm", 40.0) for m in climatology) / 12.0
@@ -961,37 +1158,82 @@ def optimize_five_year_rotation(
         s["priority_alignment_pct"] = round(raw_pct, 1)
 
     is_ood = regime.get("ood_warning", False) or regime.get("ood_status") == "Out-of-Distribution"
-    climate_match_label = (
-        "Climate Match: Unusual Regional Climate (Verify Locally with Extension Officer)"
-        if is_ood
-        else "Climate Match: Familiar Growing Zone (High Model Confidence)"
-    )
-    regime_display_name = regime.get("regime_name") or regime.get("assigned_cluster_name", "Semiarid")
+    raw_regime_name = regime.get("regime_name") or regime.get("assigned_cluster_name", "Semi-Arid Bimodal Tropical")
+
+    SW_REGIMES = {
+        "Semi-Arid Bimodal Tropical": "Ukanda wa Nusu-Kame wa Kitropiki (Misimu Miwili)",
+        "Sub-Humid Highland Plateau": "Nyanda za Juu zenye Unyevu wa Wastani",
+        "Temperate Continental Corn Belt": "Ukanda wa Bara wa Nafaka",
+        "High Plains Dryland Basin": "Bonde la Nyanda za Juu Kavu",
+    }
+    if language == "sw":
+        regime_display_name = SW_REGIMES.get(raw_regime_name, "Ukanda wa Nusu-Kame wa Kitropiki")
+        climate_match_label = (
+            "Ukaguzi wa Tabianchi: Tabianchi Isiyo ya Kawaida (Hakiki na Afisa Ugani)"
+            if is_ood
+            else "Ukaguzi wa Tabianchi: Shamba Linalofahamika (Uhakika Mkubwa)"
+        )
+    else:
+        regime_display_name = raw_regime_name
+        climate_match_label = (
+            "Climate Match: Unusual Regional Climate (Verify Locally with Extension Officer)"
+            if is_ood
+            else "Climate Match: Familiar Growing Zone (High Model Confidence)"
+        )
 
     # 3. Side-by-Side Comparison of 3 Statistical & SI Methodologies
-    si_methods_comparison = [
-        {
-            "methodology": "Statistical Distribution & Anomaly Indices",
-            "principles": "Fitted Gamma (SPI-30/90) & Log-Logistic (SPEI-12) coupled with SMAP GWETROOT Z-scores.",
-            "data_sources": "NASA POWER v2.0 MERRA-2 Climatology, SMAP L4, GPM IMERG 0.1°",
-            "telemetry_findings": f"Latest field SPEI sits at {spei:+.2f} with GWETROOT moisture anomaly Z-score of {power_data.get('gwet_root_z', 0.0):+.2f}."
-        },
-        {
-            "methodology": "Physically-Based Dynamic Balance (PIML)",
-            "principles": "FAO-56 Dual Kc Penman-Monteith, Saxton-Rawls pedotransfer AWC, RUSLE erosion physics.",
-            "data_sources": "FAO-56 Irrigation & Drainage 56, USDA NRCS, iSDAsoil 30m / SoilGrids 2.0",
-            "telemetry_findings": f"Field AWC is {soil.get('awc_mm', 140.0)} mm; baseline seasonal ET demand is {baseline['mean_et_demand_mm']} mm."
-        },
-        {
-            "methodology": "Calibrated ML Quantile & Anomaly Surrogate",
-            "principles": "Quantile Gradient Boosting (P10/P50/P90) + GMM Mahalanobis OOD distance bounds.",
-            "data_sources": "MODIS MOD13Q1 250m NDVI, ECOSTRESS 70m LSTE, USDA NASS benchmarks",
-            "telemetry_findings": f"Regime: {regime_display_name}; {climate_match_label}."
-        }
-    ]
+    if language == "sw":
+        adv_notice = "Chombo hiki kinatoa mwongozo wa mzunguko wa mazao kwa kutumia data za NASA; hakichukui nafasi ya uzoefu wa mkulima au ushauri wa afisa ugani."
+        si_methods_comparison = [
+            {
+                "methodology": "Mwelekeo wa Hali ya Hewa (Miaka 5)",
+                "principles": "Miundo ya takwimu (SPI-30/90) & (SPEI-12) pamoja na unyevu wa mizizi wa SMAP GWETROOT.",
+                "data_sources": "NASA POWER v2.0 MERRA-2, SMAP L4, GPM IMERG 0.1°",
+                "telemetry_findings": f"Kielezo cha ukame SPEI ni {spei:+.2f}; alama ya unyevu wa mizizi GWETROOT ni {power_data.get('gwet_root_z', 0.0):+.2f}."
+            },
+            {
+                "methodology": "Hesabu ya Maji ya Shamba (FAO-56)",
+                "principles": "Uvukizi wa FAO-56 Penman-Monteith, uwezo wa udongo kushika maji (Saxton-Rawls), mmomonyoko wa RUSLE.",
+                "data_sources": "FAO-56 Irrigation 56, USDA NRCS, iSDAsoil 30m / SoilGrids 2.0",
+                "telemetry_findings": f"Uwezo wa udongo wa kushika maji (AWC) ni {soil.get('awc_mm', 140.0)} mm; kiu ya msimu ni {baseline['mean_et_demand_mm']} mm."
+            },
+            {
+                "methodology": "Makadirio ya Hatari za Mavuno (ML)",
+                "principles": "Muundo wa Gradient Boosting (P10/P50/P90) na kizuizi cha kutambua hali ngeni (GMM OOD).",
+                "data_sources": "MODIS MOD13Q1 250m NDVI, ECOSTRESS 70m LSTE",
+                "telemetry_findings": f"Eneo la Kilimo: {regime_display_name}; {climate_match_label}."
+            }
+        ]
+        # Also map crop sequence names to Swahili inside enriched strategies
+        for s in enriched:
+            s["archetype_original"] = s["archetype"]
+            s["archetype"] = SW_ARCHETYPES.get(s["archetype"], s["archetype"])
+            s["sequence_names"] = [SW_CROPS.get(cid, crop_map[cid]["name"].split("(")[0].strip()) for cid in s["sequence"]]
+    else:
+        adv_notice = "Supportive decision-support tool only: identifies patterns and rotation possibilities from NASA Earth observations, but does not replace farmer judgment or local agricultural expertise."
+        si_methods_comparison = [
+            {
+                "methodology": "Statistical Distribution & Anomaly Indices",
+                "principles": "Fitted Gamma (SPI-30/90) & Log-Logistic (SPEI-12) coupled with SMAP GWETROOT Z-scores.",
+                "data_sources": "NASA POWER v2.0 MERRA-2 Climatology, SMAP L4, GPM IMERG 0.1°",
+                "telemetry_findings": f"Latest field SPEI sits at {spei:+.2f} with GWETROOT moisture anomaly Z-score of {power_data.get('gwet_root_z', 0.0):+.2f}."
+            },
+            {
+                "methodology": "Physically-Based Dynamic Balance (PIML)",
+                "principles": "FAO-56 Dual Kc Penman-Monteith, Saxton-Rawls pedotransfer AWC, RUSLE erosion physics.",
+                "data_sources": "FAO-56 Irrigation & Drainage 56, USDA NRCS, iSDAsoil 30m / SoilGrids 2.0",
+                "telemetry_findings": f"Field AWC is {soil.get('awc_mm', 140.0)} mm; baseline seasonal ET demand is {baseline['mean_et_demand_mm']} mm."
+            },
+            {
+                "methodology": "Calibrated ML Quantile & Anomaly Surrogate",
+                "principles": "Quantile Gradient Boosting (P10/P50/P90) + GMM Mahalanobis OOD distance bounds.",
+                "data_sources": "MODIS MOD13Q1 250m NDVI, ECOSTRESS 70m LSTE, USDA NASS benchmarks",
+                "telemetry_findings": f"Regime: {regime_display_name}; {climate_match_label}."
+            }
+        ]
 
     return {
-        "advisory_notice": "Supportive decision-support tool only: identifies patterns and rotation possibilities from NASA Earth observations, but does not replace farmer judgment or local agricultural expertise.",
+        "advisory_notice": adv_notice,
         "field_diagnosis": diagnosis,
         "opportunities": opportunities,
         "regime": regime,

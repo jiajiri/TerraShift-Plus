@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Sliders, CheckCircle2, RotateCcw, AlertTriangle } from 'lucide-react';
+import { useI18n } from '../i18n/I18nContext';
 
 export default function BenchmarkMatrix({
   priorities,
@@ -9,6 +10,7 @@ export default function BenchmarkMatrix({
   onOverrideChange,
   onResetOverrides
 }) {
+  const { t } = useI18n();
   const [localPh, setLocalPh] = useState(overrides.soilPh || '');
   const [localClay, setLocalClay] = useState(overrides.clayFraction || '');
   const [localPrecip, setLocalPrecip] = useState(overrides.annualPrecip || '');
@@ -29,22 +31,23 @@ export default function BenchmarkMatrix({
     onResetOverrides();
   };
 
+  const weightsSum = Math.round(((priorities?.water ?? 0) + (priorities?.heat ?? 0) + (priorities?.soil ?? 0) + (priorities?.market ?? 0)) / 4);
+
   return (
     <div className="space-y-6">
       {/* Stage Introduction Banner */}
       <div className="bg-white p-4 border border-[#DDD9CE] flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
           <h2 className="text-sm font-mono font-semibold text-[#1C231F] uppercase tracking-wider">
-            Operational Stage 02: Agronomic Priorities & Ground-Truth Calibration
+            {t('calibration.banner_title')}
           </h2>
           <p className="text-xs text-[#4E5851] mt-1 max-w-3xl">
-            Spaceborne instruments provide coarse spatial grids (e.g. 250m soil grids, 0.5° weather grids).
-            Calibrate decision weighting to farm-gate economic targets or override satellite estimates with in-situ field lab tests.
+            {t('calibration.banner_desc')}
           </p>
         </div>
         <div className="flex items-center space-x-2 text-xs font-mono text-[#767E78]">
           <span className="px-2 py-1 bg-[#EFEDE6] border border-[#DDD9CE]">
-            MCDA WEIGHTS SUM: {Math.round(((priorities?.water ?? 0) + (priorities?.heat ?? 0) + (priorities?.soil ?? 0) + (priorities?.market ?? 0)) / 4)}%
+            {t('calibration.weights_sum', { sum: weightsSum })}
           </span>
         </div>
       </div>
@@ -54,17 +57,17 @@ export default function BenchmarkMatrix({
         <div className="bg-white p-5 border border-[#DDD9CE] space-y-5">
           <div className="border-b border-[#DDD9CE] pb-3">
             <h3 className="text-xs font-mono font-semibold text-[#1C231F] uppercase tracking-wide">
-              MCDA Agronomic Optimization Weighting
+              {t('calibration.mcda_title')}
             </h3>
             <p className="text-[11px] text-[#767E78]">
-              Adjust priority trade-offs for rotation ranking. Values automatically normalize during matrix evaluation.
+              {t('calibration.mcda_desc')}
             </p>
           </div>
 
           {/* Slider 1: Water Balance Weight */}
           <div>
             <div className="flex justify-between text-xs font-mono mb-1.5">
-              <span className="font-medium text-[#1C231F]">Water Conservation & Drought Survival</span>
+              <span className="font-medium text-[#1C231F]">{t('calibration.water_priority')}</span>
               <span className="font-bold text-[#1F5673]">{priorities.water}%</span>
             </div>
             <input
@@ -76,15 +79,15 @@ export default function BenchmarkMatrix({
               className="w-full h-1.5 bg-[#EFEDE6] appearance-none cursor-pointer"
             />
             <div className="flex justify-between text-[10px] text-[#767E78] font-mono mt-1">
-              <span>Standard Need</span>
-              <span>Extreme Water Conservation</span>
+              <span>{t('calibration.water_low')}</span>
+              <span>{t('calibration.water_high')}</span>
             </div>
           </div>
 
           {/* Slider 2: Heat Tolerance Weight */}
           <div>
             <div className="flex justify-between text-xs font-mono mb-1.5">
-              <span className="font-medium text-[#1C231F]">Thermal Stress & Heatwave Resistance</span>
+              <span className="font-medium text-[#1C231F]">{t('calibration.heat_priority')}</span>
               <span className="font-bold text-[#9E3426]">{priorities.heat}%</span>
             </div>
             <input
@@ -96,15 +99,15 @@ export default function BenchmarkMatrix({
               className="w-full h-1.5 bg-[#EFEDE6] appearance-none cursor-pointer"
             />
             <div className="flex justify-between text-[10px] text-[#767E78] font-mono mt-1">
-              <span>Moderate Tolerance</span>
-              <span>Extreme Thermal Survival</span>
+              <span>{t('calibration.heat_low')}</span>
+              <span>{t('calibration.heat_high')}</span>
             </div>
           </div>
 
           {/* Slider 3: Soil Regeneration Weight */}
           <div>
             <div className="flex justify-between text-xs font-mono mb-1.5">
-              <span className="font-medium text-[#1C231F]">Soil Regeneration (Legume N-Fixation & Organic Matter)</span>
+              <span className="font-medium text-[#1C231F]">{t('calibration.soil_priority')}</span>
               <span className="font-bold text-[#234E36]">{priorities.soil}%</span>
             </div>
             <input
@@ -116,15 +119,15 @@ export default function BenchmarkMatrix({
               className="w-full h-1.5 bg-[#EFEDE6] appearance-none cursor-pointer"
             />
             <div className="flex justify-between text-[10px] text-[#767E78] font-mono mt-1">
-              <span>Neutral Soil Impact</span>
-              <span>Maximum Biological Restoration</span>
+              <span>{t('calibration.soil_low')}</span>
+              <span>{t('calibration.soil_high')}</span>
             </div>
           </div>
 
           {/* Slider 4: Market Resilience Weight */}
           <div>
             <div className="flex justify-between text-xs font-mono mb-1.5">
-              <span className="font-medium text-[#1C231F]">Market Value & Cash Flow Security</span>
+              <span className="font-medium text-[#1C231F]">{t('calibration.market_priority')}</span>
               <span className="font-bold text-[#8C5710]">{priorities.market}%</span>
             </div>
             <input
@@ -136,8 +139,8 @@ export default function BenchmarkMatrix({
               className="w-full h-1.5 bg-[#EFEDE6] appearance-none cursor-pointer"
             />
             <div className="flex justify-between text-[10px] text-[#767E78] font-mono mt-1">
-              <span>Subsistence Tolerance</span>
-              <span>High Commercial Liquidity</span>
+              <span>{t('calibration.market_low')}</span>
+              <span>{t('calibration.market_high')}</span>
             </div>
           </div>
         </div>
@@ -146,10 +149,10 @@ export default function BenchmarkMatrix({
         <div className="bg-white p-5 border border-[#DDD9CE] space-y-4">
           <div className="border-b border-[#DDD9CE] pb-3">
             <h3 className="text-xs font-mono font-semibold text-[#1C231F] uppercase tracking-wide">
-              Farmer In-Situ Ground-Truth Calibration
+              {t('calibration.ground_truth_title')}
             </h3>
             <p className="text-[11px] text-[#767E78]">
-              Override satellite predictions with actual soil sample reports or local rain-gauge observations.
+              {t('calibration.ground_truth_desc')}
             </p>
           </div>
 
@@ -157,9 +160,9 @@ export default function BenchmarkMatrix({
             {/* Override Soil pH */}
             <div>
               <label className="block text-xs font-mono text-[#1C231F] mb-1">
-                Measured Soil pH (H₂O)
+                {t('calibration.ph_label')}
                 <span className="text-[#767E78] ml-2 text-[10px]">
-                  [Satellite estimate: {telemetry.soil?.ph ?? telemetry.soil?.soilPh ?? 'N/A'}]
+                  [{t('calibration.ph_placeholder', { val: telemetry.soil?.ph ?? telemetry.soil?.soilPh ?? 'N/A' })}]
                 </span>
               </label>
               <input
@@ -169,7 +172,7 @@ export default function BenchmarkMatrix({
                 max="10.0"
                 value={localPh}
                 onChange={(e) => setLocalPh(e.target.value)}
-                placeholder="e.g. 6.4 (Leave blank to use satellite)"
+                placeholder="e.g. 6.4"
                 className="w-full h-8 px-2.5 bg-[#EFEDE6] border border-[#DDD9CE] text-xs font-mono text-[#1C231F] focus:outline-none focus:border-[#234E36]"
               />
             </div>
@@ -177,9 +180,9 @@ export default function BenchmarkMatrix({
             {/* Override Clay Fraction */}
             <div>
               <label className="block text-xs font-mono text-[#1C231F] mb-1">
-                Measured Clay Content (%)
+                {t('calibration.clay_label')}
                 <span className="text-[#767E78] ml-2 text-[10px]">
-                  [Satellite estimate: {telemetry.soil?.clay_pct != null ? `${telemetry.soil.clay_pct}%` : (telemetry.soil?.clayFractionPercent != null ? `${telemetry.soil.clayFractionPercent}%` : 'N/A')}]
+                  [{t('calibration.clay_placeholder', { val: telemetry.soil?.clay_pct != null ? telemetry.soil.clay_pct : (telemetry.soil?.clayFractionPercent != null ? telemetry.soil.clayFractionPercent : 'N/A') })}]
                 </span>
               </label>
               <input
@@ -189,7 +192,7 @@ export default function BenchmarkMatrix({
                 max="100"
                 value={localClay}
                 onChange={(e) => setLocalClay(e.target.value)}
-                placeholder="e.g. 28.5 (Leave blank to use satellite)"
+                placeholder="e.g. 28.5"
                 className="w-full h-8 px-2.5 bg-[#EFEDE6] border border-[#DDD9CE] text-xs font-mono text-[#1C231F] focus:outline-none focus:border-[#234E36]"
               />
             </div>
@@ -197,9 +200,9 @@ export default function BenchmarkMatrix({
             {/* Override Annual Rain Gauge */}
             <div>
               <label className="block text-xs font-mono text-[#1C231F] mb-1">
-                On-Farm Rain Gauge Annual Total (mm)
+                {t('calibration.rain_label')}
                 <span className="text-[#767E78] ml-2 text-[10px]">
-                  [NASA estimate: {telemetry.power?.annual_precip_mm ?? telemetry.power?.annual_precipitation_mm ?? telemetry.power?.annualPrecipMm ?? 'N/A'} mm]
+                  [{t('calibration.rain_placeholder', { val: telemetry.power?.annual_precip_mm ?? telemetry.power?.annual_precipitation_mm ?? telemetry.power?.annualPrecipMm ?? 'N/A' })}]
                 </span>
               </label>
               <input
@@ -209,7 +212,7 @@ export default function BenchmarkMatrix({
                 max="5000"
                 value={localPrecip}
                 onChange={(e) => setLocalPrecip(e.target.value)}
-                placeholder="e.g. 520 (Leave blank to use satellite)"
+                placeholder="e.g. 520"
                 className="w-full h-8 px-2.5 bg-[#EFEDE6] border border-[#DDD9CE] text-xs font-mono text-[#1C231F] focus:outline-none focus:border-[#234E36]"
               />
             </div>
@@ -219,14 +222,14 @@ export default function BenchmarkMatrix({
                 type="submit"
                 className="px-3 py-1.5 bg-[#234E36] text-white text-xs font-mono font-medium hover:bg-[#1A3B29] transition-colors"
               >
-                APPLY GROUND-TRUTH
+                {t('calibration.apply_overrides')}
               </button>
               <button
                 type="button"
                 onClick={handleReset}
                 className="px-3 py-1.5 bg-white border border-[#DDD9CE] text-xs font-mono text-[#767E78] hover:text-[#1C231F] transition-colors"
               >
-                RESET TO SATELLITE
+                {t('calibration.reset_satellite')}
               </button>
             </div>
           </form>
@@ -234,7 +237,7 @@ export default function BenchmarkMatrix({
           {telemetry.soil?.isOverridden && (
             <div className="p-2.5 bg-[#EAF3ED] border border-[#B8D8C3] flex items-center space-x-2 text-xs font-mono text-[#265D3D]">
               <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
-              <span>Ground-truth parameters active. Satellite baselines are overridden.</span>
+              <span>{t('calibration.calibrated_badge')}</span>
             </div>
           )}
         </div>

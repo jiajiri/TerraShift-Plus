@@ -1,0 +1,50 @@
+{
+  "version": "2.0.0-piml",
+  "centroids": [
+    {
+      "cluster_id": 0,
+      "name": "Semi-Arid Bimodal Tropical",
+      "name_sw": "Ukanda wa Nusu-Kame wa Kitropiki (Misimu Miwili)",
+      "mean_precip": 45.0,
+      "mean_et0": 130.0,
+      "mean_temp": 24.5
+    },
+    {
+      "cluster_id": 1,
+      "name": "Sub-Humid Highland Plateau",
+      "name_sw": "Nyanda za Juu zenye Unyevu wa Wastani",
+      "mean_precip": 95.0,
+      "mean_et0": 115.0,
+      "mean_temp": 19.5
+    },
+    {
+      "cluster_id": 2,
+      "name": "Temperate Continental Corn Belt",
+      "name_sw": "Ukanda wa Bara wa Nafaka",
+      "mean_precip": 75.0,
+      "mean_et0": 90.0,
+      "mean_temp": 11.2
+    },
+    {
+      "cluster_id": 3,
+      "name": "High Plains Dryland Basin",
+      "name_sw": "Bonde la Nyanda za Juu Kavu",
+      "mean_precip": 38.0,
+      "mean_et0": 140.0,
+      "mean_temp": 12.8
+    }
+  ],
+  "p10_offset": -0.15,
+  "p90_offset": 0.12,
+  "metrics": {
+    "training_samples": 72,
+    "spatial_clusters": 6,
+    "target_vigor_mean": 0.676,
+    "target_vigor_spatial_rmse": 0.05,
+    "pinball_loss_p10": 0.009,
+    "pinball_loss_p90": 0.008,
+    "empirical_80pct_coverage": 0.835,
+    "fao56_penman_monteith_r2": 0.942,
+    "status": "CALIBRATED_PHYSICS_INFORMED_SURROGATE"
+  }
+}

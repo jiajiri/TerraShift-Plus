@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TerraShift+ API Documentation (Swagger UI)</title>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/swagger-ui-dist@5.17.14/swagger-ui.css"
+    />
+    <style>
+      body {
+        margin: 0;
+        background: #F6F5F0;
+        font-family: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      }
+      .topbar { display: none !important; }
+      .ts-doc-banner {
+        background: #234E36;
+        color: #FFFFFF;
+        padding: 12px 24px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 13px;
+        font-family: "IBM Plex Mono", monospace;
+        border-bottom: 1px solid #1A3B29;
+      }
+      .ts-doc-banner a {
+        color: #EAF3ED;
+        text-decoration: underline;
+        font-weight: 500;
+      }
+      .ts-doc-banner a:hover {
+        color: #FFFFFF;
+      }
+      .swagger-ui .info .title {
+        font-family: "IBM Plex Sans", sans-serif;
+        color: #1C231F;
+      }
+      .swagger-ui .opblock.opblock-post {
+        border-color: #234E36;
+        background: rgba(35, 78, 54, 0.05);
+      }
+      .swagger-ui .opblock.opblock-post .opblock-summary-method {
+        background: #234E36;
+      }
+      .swagger-ui .opblock.opblock-get {
+        border-color: #1F5673;
+        background: rgba(31, 86, 115, 0.05);
+      }
+      .swagger-ui .opblock.opblock-get .opblock-summary-method {
+        background: #1F5673;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="ts-doc-banner">
+      <strong>[NASA] TERRASHIFT+ // REST &amp; SSE EARTH-OBSERVATION API (OPENAPI 3.1)</strong>
+      <a href="/">Return to Workstation</a>
+    </div>
+    <div id="swagger-ui"></div>
+    <script src="https://unpkg.com/swagger-ui-dist@5.17.14/swagger-ui-bundle.js"></script>
+    <script>
+      window.onload = function () {
+        SwaggerUIBundle({
+          url: '/openapi.json',
+          dom_id: '#swagger-ui',
+          presets: [SwaggerUIBundle.presets.apis],
+          layout: 'BaseLayout',
+          deepLinking: true,
+        });
+      };
+    </script>
+  </body>
+</html>

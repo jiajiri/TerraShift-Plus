@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "include": ["/api/*"],
+  "exclude": ["/assets/*", "/data/*", "/research-paper.pdf", "/openapi.json", "/docs.html"]
+}

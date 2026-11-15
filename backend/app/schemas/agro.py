@@ -120,7 +120,8 @@ class OptimizeRequest:
         precip_delta_pct: float = 0.0,
         temp_delta_c: float = 0.0,
         soil_overrides: Optional[SoilInput] = None,
-        constraints: Optional[FarmerConstraints] = None
+        constraints: Optional[FarmerConstraints] = None,
+        language: str = "en"
     ):
         self.latitude = float(latitude)
         self.longitude = float(longitude)
@@ -128,6 +129,7 @@ class OptimizeRequest:
         self.temp_delta_c = float(temp_delta_c)
         self.soil_overrides = soil_overrides or SoilInput()
         self.constraints = constraints or FarmerConstraints()
+        self.language = str(language or "en")
 
     @classmethod
     def from_dict(cls, d: Dict[str, Any]) -> OptimizeRequest:
@@ -137,7 +139,8 @@ class OptimizeRequest:
             precip_delta_pct=d.get("precip_delta_pct", 0.0),
             temp_delta_c=d.get("temp_delta_c", 0.0),
             soil_overrides=SoilInput.from_dict(d.get("soil_overrides")),
-            constraints=FarmerConstraints.from_dict(d.get("constraints"))
+            constraints=FarmerConstraints.from_dict(d.get("constraints")),
+            language=d.get("language", "en")
         )
 
 

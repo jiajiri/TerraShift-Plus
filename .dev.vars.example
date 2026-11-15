@@ -1,0 +1,11 @@
+# Cloudflare Pages / Wrangler Local Development Environment Variables
+# Copy to .dev.vars for local testing: npx wrangler pages dev frontend/dist
+# NOTE: Never commit .dev.vars to source control!
+
+GEMINI_API_KEY=
+ISDA_USERNAME=
+ISDA_PASSWORD=
+EARTHDATA_USERNAME=
+EARTHDATA_PASSWORD=
+HARVEST_API_TOKEN=
+PYTHON_BACKEND_URL=
